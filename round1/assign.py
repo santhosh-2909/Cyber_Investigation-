@@ -7,6 +7,7 @@ import json
 import random
 import secrets
 
+import admin_ops
 import round1.db as db
 import round1.lab as lab
 

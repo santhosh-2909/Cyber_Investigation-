@@ -62,9 +62,7 @@
             <tr>
               <th>RANK</th>
               <th>TEAM</th>
-              <th style="text-align:right;">ROUND 01</th>
-              <th style="text-align:right;">ROUND 02</th><th style="text-align:right;">FINISH</th>
-              <th style="text-align:right;">TOTAL</th>
+              <th style="text-align:right;">ROUND 02 SCORE</th><th style="text-align:right;">FINISH</th>
               <th style="text-align:right;">STATUS</th>
             </tr>
           </thead>
@@ -83,9 +81,8 @@
                   {% if t.name == team.name %}<span class="badge badge-accent" style="font-size:0.5625rem;">YOU</span>{% endif %}
                 </div>
               </td>
-              <td class="text-right font-mono">{{ t.round1 }}</td>
-              <td class="text-right font-mono">{{ t.round2 }}</td>
-              <td class="text-right"><span class="font-mono font-weight-bold" style="font-weight:700;color:var(--text-primary);">{{ t.total }}</span></td><td class="text-right font-mono">{{ t.r2_done | ts }}</td>
+              <td class="text-right"><span class="font-mono font-weight-bold" style="font-weight:700;color:var(--text-primary);">{{ t.round2 }}</span></td>
+              <td class="text-right font-mono">{{ t.r2_done | ts }}</td>
               <td class="text-right">
                 <span class="badge {% if t.active %}badge-success baby-dot{% else %}badge-neutral{% endif %}">
                   {{ 'ACTIVE' if t.active else 'IDLE' }}

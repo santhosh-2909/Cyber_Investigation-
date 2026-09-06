@@ -25,19 +25,14 @@
   </header>
 
   <!-- Metrics -->
-  <div class="grid grid-3" style="margin-bottom:14px;">
-    <div class="fs-card" style="padding:18px 20px;">
-      <div class="fs-overline" style="margin-bottom:8px;"><strong>ROUND 01</strong> — CYBER PUZZLE</div>
-      <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">{{ r1_solved }}<span style="font-size:.8rem;color:var(--text-muted);"> / 6 SOLVED</span></div>
-      <div class="progress mt-md"><div class="progress-fill" style="width:{{ (r1_solved * 100 / 6)|round|int }}%;"></div></div>
-    </div>
+  <div class="grid grid-2" style="margin-bottom:14px;">
     <div class="fs-card" style="padding:18px 20px;">
       <div class="fs-overline" style="margin-bottom:8px;"><strong>ROUND 02</strong> — EVIDENCE</div>
       <div style="font-size:1.4rem;font-weight:800;color:var(--success);">{{ verified }}<span style="font-size:.8rem;color:var(--text-muted);"> / {{ case.stations|length }} STATIONS</span></div>
       <div class="progress mt-md"><div class="progress-fill success" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%;"></div></div>
     </div>
     <div class="fs-card" style="padding:18px 20px;">
-      <div class="fs-overline" style="margin-bottom:8px;"><strong>REPORT</strong> — FINAL</div>
+      <div class="fs-overline" style="margin-bottom:8px;"><strong>ROUND 02 REPORT</strong> — FINAL</div>
       <div style="font-size:1.4rem;font-weight:800;color:{{ 'var(--success)' if report_done else 'var(--text-muted)' }};">{{ 'SUBMITTED' if report_done else 'PENDING' }}</div>
       <div class="mt-md fs-chip {{ 'ok' if report_done else 'dim' }}">{{ 'COMPLETE' if report_done else 'NOT SUBMITTED' }}</div>
     </div>
@@ -105,8 +100,8 @@
       <p style="font-size:.8rem;color:var(--text-muted);line-height:1.55;">Submit your incident report and identify the persons involved.</p>
     </a>
     <a href="{{ url_for('scoreboard') }}" class="fs-card" style="padding:18px 20px;text-decoration:none;color:inherit;transition:border-color var(--duration-fast);display:block;">
-      <div class="fs-overline" style="margin-bottom:8px;"><strong>SCOREBOARD</strong></div>
-      <p style="font-size:.8rem;color:var(--text-muted);line-height:1.55;">See how your team ranks across both rounds.</p>
+      <div class="fs-overline" style="margin-bottom:8px;"><strong>ROUND 02 SCOREBOARD</strong></div>
+      <p style="font-size:.8rem;color:var(--text-muted);line-height:1.55;">See how your team ranks in the digital forensics investigation.</p>
     </a>
   </div>
 </div>
