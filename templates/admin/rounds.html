@@ -1,0 +1,102 @@
+{% extends "admin_base.html" %}
+{% block title %}Round Control - Admin{% endblock %}
+{% block content %}
+<div class="mb-xl animate-slide-up">
+  <h1 style="font-size:2rem;">ROUND CONTROL</h1>
+  <p class="text-secondary" style="margin-top:4px;">Control the competition rounds and global event timer.</p>
+</div>
+
+<!-- Round 1 -->
+<div class="card mb-xl animate-slide-up stagger-1">
+  <div class="card-header">
+    <div class="flex items-center gap-md">
+      <span class="font-overline text-accent">ROUND 01</span>
+      <h3>CYBER PUZZLE</h3>
+      <span class="badge badge-success badge-dot">ACTIVE</span>
+    </div>
+  </div>
+  <p class="text-secondary" style="margin-bottom:16px;">12 technical challenges currently unlocked for all teams.</p>
+  <div class="flex items-center gap-sm">
+    <button class="btn btn-danger" onclick="confirmRoundAction('Lock Round 01? Teams will lose access to challenges.')">LOCK ROUND</button>
+    <button class="btn btn-success" onclick="confirmRoundAction('Unlock Round 01?')">UNLOCK ROUND</button>
+  </div>
+</div>
+
+<!-- Round 2 -->
+<div class="card mb-xl animate-slide-up stagger-2">
+  <div class="card-header">
+    <div class="flex items-center gap-md">
+      <span class="font-overline text-cyan">ROUND 02</span>
+      <h3>CYBER DETECTIVE</h3>
+      <span class="badge badge-neutral">LOCKED</span>
+    </div>
+  </div>
+  <p class="text-secondary" style="margin-bottom:16px;">3 forensic investigation cases. Unlock to allow teams to begin Round 2.</p>
+  <div class="flex items-center gap-sm">
+    <button class="btn btn-primary" onclick="confirmRoundAction('Unlock Round 02?')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+      UNLOCK ROUND
+    </button>
+    <button class="btn btn-danger" onclick="confirmRoundAction('Lock Round 02?')">LOCK ROUND</button>
+  </div>
+</div>
+
+<!-- Global Timer -->
+<div class="card animate-slide-up stagger-3">
+  <div class="card-header">
+    <div class="flex items-center gap-md">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <h3>GLOBAL EVENTS TIMER</h3>
+    </div>
+  </div>
+  <div class="flex items-center gap-xl" style="flex-wrap:wrap;">
+    <div>
+      <div class="font-overline text-muted mb-sm">TIME REMAINING</div>
+      <div class="score-display score-large text-cyan font-mono" id="global-timer">01:42:18</div>
+    </div>
+    <div class="flex items-center gap-sm">
+      <button class="btn btn-success" onclick="confirmRoundAction('Start the global timer?')">START</button>
+      <button class="btn btn-warning" onclick="confirmRoundAction('Pause the global timer?')">PAUSE</button>
+      <button class="btn btn-danger" onclick="confirmRoundAction('Reset the global timer to 00:00:00? This cannot be undone.')">RESET</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="round-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>DANGEROUS ACTION</h3>
+      <button class="btn btn-subtle btn-sm" onclick="closeRoundModal()">&times;</button>
+    </div>
+    <p id="round-confirm-text" class="text-secondary" style="margin-bottom:6px;">This action affects all teams and cannot be undone easily.</p>
+    <p class="text-danger" style="font-size:0.875rem;margin-bottom:20px;" id="round-action-label">Are you sure?</p>
+    <div class="flex justify-end gap-sm">
+      <button class="btn btn-ghost" onclick="closeRoundModal()">CANCEL</button>
+      <button class="btn btn-danger" onclick="closeRoundModal(); showToast('Action applied', 'success')">CONFIRM</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let timerSec = 1*3600 + 42*60 + 18;
+const el = document.getElementById('global-timer');
+setInterval(function() {
+  timerSec--;
+  if (timerSec < 0) timerSec = 0;
+  const h = String(Math.floor(timerSec/3600)).padStart(2,'0');
+  const m = String(Math.floor((timerSec%3600)/60)).padStart(2,'0');
+  const s = String(timerSec%60).padStart(2,'0');
+  el.textContent = h + ':' + m + ':' + s;
+}, 1000);
+
+function confirmRoundAction(text) {
+  document.getElementById('round-action-label').textContent = text;
+  document.getElementById('round-modal').classList.add('active');
+}
+function closeRoundModal() {
+  document.getElementById('round-modal').classList.remove('active');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Enter Password</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+</head>
+<body>
+  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;">
+
+    <!-- Cinematic hacker scene (decorative background) -->
+    <div class="cyber-scene" aria-hidden="true">
+      <div class="cs-glows"></div>
+      <div class="cs-hood"></div>
+      <div class="cs-binary"></div>
+      <div class="cs-overlay"></div>
+    </div>
+
+    <div class="pub-auth" style="max-width:420px;">
+      <a href="{{ url_for('landing') }}" class="hud-nav-link hud-btn-ghost" style="display:inline-flex;margin-bottom:16px;">&larr; BACK TO MAIN PAGE</a>
+      <div class="pub-auth-card">
+        <div class="hud-kicker" style="color:var(--hud-purple-lt);">ADMIN CONSOLE</div>
+        <h2 class="hud-h1" style="margin:8px 0 6px;">Enter Password</h2>
+        <p style="font-size:.8rem;color:var(--hud-dim);margin:0 0 20px;">Signed in as <strong>{{ username }}</strong>. Enter your password to open the dashboard.</p>
+        {% if error %}
+          <div style="background:rgba(255,176,32,0.08);border:1px solid #FFB020;padding:12px 14px;border-radius:10px;margin-bottom:16px;">
+            <span style="color:var(--hud-amber);font-size:0.85rem;">{{ error }}</span>
+          </div>
+        {% endif %}
+        <form method="POST" action="{{ url_for('admin_dashboard') }}">
+          <div style="margin-bottom:20px;">
+            <label class="pub-label">PASSWORD</label>
+            <input type="password" name="password" class="pub-field" required autofocus autocomplete="current-password">
+          </div>
+          <button type="submit" class="hud-btn btn-lg" style="width:100%;">UNLOCK DASHBOARD</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

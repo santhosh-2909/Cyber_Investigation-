@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+{% block title %}{% if unlocked %}Station {{ station.id }} - {{ station.name }}{% else %}Station Locked{% endif %} · {{ case.code }}{% endblock %}
+{% block content %}
+{% set next_open = case.stations[0].id %}
+{% for item in vault %}
+  {% if item.state in ('opened', 'analyzing', 'flagged') %}
+    {% set next_open = item.station.id %}
+  {% endif %}
+{% endfor %}
+
+<div class="fs-shell">
+  <!-- Masthead -->
+  <header class="fs-masthead">
+    <div class="file-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </div>
+    <div>
+      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
+        <span class="fs-chip violet">{{ case.code }}</span>
+        {% if unlocked %}
+          <span class="fs-chip {% if state in ('verified','reviewed') %}ok{% elif state == 'flagged' %}dead{% elif state == 'analyzing' %}warn{% else %}violet{% endif %}">{{ state|upper }}</span>
+        {% else %}
+          <span class="fs-chip dim">LOCKED</span>
+        {% endif %}
+      </div>
+      <div class="mh-title">{{ case.title }}</div>
+      <div class="mh-sub">{{ case.company }} ·
+        {% if unlocked %}{{ station.id }} · {{ station.domain }}{% else %}ARTIFACT HELD IN VAULT{% endif %}</div>
+    </div>
+    <div class="mh-right">
+      <div class="fs-meter">
+        <span class="fs-overline">EVIDENCE</span>
+        <div class="m-track"><div class="m-fill" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%"></div></div>
+        <span class="fs-mono" style="font-size:.72rem;color:var(--text-secondary);">{{ verified }}/{{ case.stations|length }}</span>
+      </div>
+      <span class="fs-chip {{ 'ok' if report_done else 'dim' }}">{{ 'CASE COMPLETE' if report_done else 'INVESTIGATION OPEN' }}</span>
+    </div>
+  </header>
+
+  <div class="fs-workstation">
+    <!-- EVIDENCE VAULT -->
+    <aside class="fs-pane fs-pane-vault">
+      <div class="fs-pane-head">EVIDENCE VAULT <b>{{ case.stations|length }} ITEMS</b></div>
+      <nav class="vault">
+        {% for item in vault %}
+        <a class="vault-item vault-{{ item.state }} {{ 'is-active' if item.active }}" href="{{ url_for('evidence', station_id=item.station.id) }}">
+          <span class="vault-idx">{{ '%02d' % loop.index }}</span>
+          <span class="vault-body">
+            <span class="vault-name">{{ item.station.name }}</span>
+            <span class="vault-meta">{{ item.station.domain }}</span>
+          </span>
+          <span class="vault-state">{{ item.state }}</span>
+        </a>
+        {% endfor %}
+      </nav>
+      <div class="fs-pane-foot">
+        <a href="{{ url_for('evidence_board') }}" class="fs-foot-link">CASE OVERVIEW</a>
+        <a href="{{ url_for('report') }}" class="fs-foot-link violet">FINAL REPORT →</a>
+      </div>
+    </aside>
+
+    <!-- EVIDENCE VIEWER -->
+    <section class="fs-pane fs-pane-viewer">
+      {% if unlocked %}
+        <!-- file header -->
+        <div class="viewer-head">
+          <div class="file-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="file-meta">
+            <div class="f-name">{{ station.evidence }}</div>
+            <div class="f-sub" id="file-specs">{{ station.evidence.split('.')[-1]|upper }} &middot; ANALYZING &middot; CUSTODY VERIFIED</div>
+          </div>
+          <span class="fs-chip ok">CHAIN OK</span>
+        </div>
+
+        <!-- toolbox -->
+        <div class="toolbar">
+          <div class="tb-tabs">
+            <button class="tb-tab is-active" data-panel2="text">Text</button>
+            <button class="tb-tab" data-panel2="hex">Hex</button>
+            <button class="tb-tab" data-panel2="strings">Strings</button>
+            <button class="tb-tab" data-panel2="email">Email</button>
+            <button class="tb-tab" data-panel2="log">Log</button>
+            <button class="tb-tab" data-panel2="timeline">Timeline</button>
+            <button class="tb-tab" data-panel2="network">Network</button>
+            <button class="tb-tab" data-panel2="hash">Hash</button>
+            <button class="tb-tab" data-panel2="search">Search</button>
+          </div>
+          <div class="toolbar-actions">
+            <a href="{{ url_for('download_evidence', filename=station.evidence) }}" class="btn btn-subtle btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              DOWNLOAD
+            </a>
+          </div>
+        </div>
+
+        <!-- tool panels -->
+        <div class="tb-panels">
+          <div class="tb-panel is-active" data-panel2="text">
+            <div class="term">
+              <div class="term-head"><span class="term-dots"><i></i><i></i><i></i></span> viewer://{{ station.evidence }}</div>
+              <div class="term-body" id="raw-body"><span class="term-empty">Reading artifact…</span></div>
+            </div>
+          </div>
+          <div class="tb-panel" data-panel2="hex"><div class="an-grid" id="hex-body"></div></div>
+          <div class="tb-panel" data-panel2="strings"><div class="an-grid" id="strings-body"></div></div>
+          <div class="tb-panel" data-panel2="email"><div class="an-grid" id="email-body"></div></div>
+          <div class="tb-panel" data-panel2="log">
+            <div class="term"><div class="term-head"><span class="term-dots"><i></i><i></i><i></i></span> tail -f app.log</div>
+            <div class="term-body" id="log-body"></div></div>
+          </div>
+          <div class="tb-panel" data-panel2="timeline"><div class="an-grid" id="timeline-body"></div></div>
+          <div class="tb-panel" data-panel2="network"><div class="an-grid" id="network-body"></div></div>
+          <div class="tb-panel" data-panel2="hash">
+            <div class="hash-verify">
+              <div class="hash-row"><span class="algo">SHA-256</span><code id="hash-sha256">&mdash;</code></div>
+              <div class="hash-row"><span class="algo">SHA-1</span><code id="hash-sha1">&mdash;</code></div>
+              <div class="hash-row"><span class="algo">MD5</span><code class="term-empty">use an external tool (demo computes SHA-1/256)</code></div>
+              <div class="hash-compare">
+                <input type="text" id="hash-input" placeholder="paste a hash to compare…" spellcheck="false">
+                <button class="btn btn-subtle btn-sm" id="hash-compare-btn">COMPARE</button>
+              </div>
+              <div class="hash-verdict" id="hash-verdict"></div>
+            </div>
+          </div>
+          <div class="tb-panel" data-panel2="search">
+            <div class="tool-search">
+              <input type="text" id="search-input" placeholder="search artifact for a string / IP / hash…" spellcheck="false">
+            </div>
+            <div class="term"><div class="term-head"><span class="term-dots"><i></i><i></i><i></i></span> grep -C 2</div>
+            <div class="term-body" id="search-body"></div></div>
+          </div>
+        </div>
+
+        <!-- investigation question -->
+        <div class="case-q">
+          <div class="q-label">INVESTIGATION QUESTION <b>({{ station.id }})</b></div>
+          <p>{{ station.question }}</p>
+        </div>
+      {% else %}
+        <div class="lock-panel">
+          <div class="lock-glyph">🔐</div>
+          <h3>STATION {{ station_id }} LOCKED</h3>
+          <p>Artifacts are released in sequence. Verify the current evidence station before this item is opened.</p>
+          <a href="{{ url_for('evidence', station_id=next_open) }}" class="btn btn-primary">
+            RESUME CURRENT STATION
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- FINDINGS PANE -->
+    <aside class="fs-pane fs-pane-findings">
+      <div class="fs-pane-head">FINDINGS <b>{% if unlocked %}{{ state|upper }}{% else %}HELD{% endif %}</b></div>
+
+      {% if unlocked %}
+      <form id="finding-form" class="finder">
+        <input type="hidden" name="station_id" value="{{ station.id }}">
+        <div class="finder-label">ENTER YOUR FINDING</div>
+        <input type="text" id="finding-value" class="finder-input" placeholder="e.g. 203.0.113.42" autocomplete="off" spellcheck="false"
+               {% if state in ('verified', 'reviewed', 'flagged') %}disabled{% endif %}>
+        <button type="submit" class="btn {% if state in ('verified','reviewed') %}btn-success{% else %}btn-primary{% endif %} w-full btn-lg" id="submit-btn"
+                {% if state in ('verified', 'reviewed', 'flagged') %}disabled{% endif %}>
+          {% if state in ('verified','reviewed') %}FINDING VERIFIED{% elif state == 'flagged' %}FLAGGED — LOCKED{% else %}SUBMIT FINDING{% endif %}
+        </button>
+        <div class="finder-meta">
+          <span id="attempts-label">{% if state == 'flagged' %}NO ATTEMPTS LEFT{% else %}ATTEMPTS LEFT{% endif %}</span>
+          <span class="attempts-track" id="attempts-track">
+            {% for i in range(max_attempts) %}
+            <i class="{{ 'used' if i < attempts_used }}"></i>
+            {% endfor %}
+          </span>
+        </div>
+      </form>
+      <div id="result-area"></div>
+      <button id="hint-btn" class="btn btn-subtle btn-sm fs-hint-btn" {% if state in ('verified','reviewed','flagged') %}style="display:none;"{% endif %}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        USE HINT (-10 PTS)
+      </button>
+      <div id="hint-area"></div>
+      {% else %}
+      <div class="finder" style="opacity:.55;">
+        <div class="finder-label">SUBMISSION DISABLED</div>
+        <div class="lock-glyph" style="font-size:1.4rem;text-align:center;padding:10px 0;">🔐</div>
+        <p style="font-size:.8rem;color:var(--text-muted);line-height:1.55;">Verify prior stations in the vault to unlock this submission terminal.</p>
+      </div>
+      {% endif %}
+
+      <div class="pane-divider"></div>
+
+      <div class="note">
+        <div class="note-head">
+          INVESTIGATOR NOTE
+          <span class="note-save" id="note-save">SAVED ✓</span>
+        </div>
+        <textarea id="note-text" class="note-input" placeholder="Record timestamps, IOCs, suspicious actors and leads…"
+                  {% if not unlocked %}disabled{% endif %}>{{ note }}</textarea>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  {% if unlocked %}
+  const stationId = {{ station.id|tojson }};
+  const fileUrl = {{ url_for('download_evidence', filename=station.evidence)|tojson }};
+  const hintText = {{ station.hint|tojson }};
+  const INITIAL_ATTEMPTS = {{ max_attempts }};
+  const MAX_ATTEMPTS = {{ max_attempts }};
+  const stateNow = {{ state|tojson }};
+  let artifact = '';
+
+  /********************** DATA LOADING **********************/
+  fetch(fileUrl)
+    .then(r => {
+      if (!r.ok) throw new Error('read denied');
+      return r.text();
+    })
+    .then(tx => {
+      artifact = tx;
+      const specs = document.getElementById('file-specs');
+      specs.textContent = ({{ (station.evidence.split('.')[-1]|upper)|tojson }}) + ' · ' +
+        (tx.length) + ' B · ' + tx.split(/\r?\n/).length + ' LINES · CUSTODY VERIFIED';
+      renderAll();
+    })
+    .catch(() => {
+      document.getElementById('raw-body').innerHTML =
+        '<span class="term-empty">Binary or non-text artifact — download the file and analyze it offline.</span>';
+    });
+
+  /********************** HELPERS **********************/
+  const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function tokenize(line) {
+    const tokens = [];
+    const re = /(flag\{[^}]*\})|([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}[ T][0-9]{2}:[0-9]{2}(?::[0-9]{2})?(?:\.[0-9]+)?(?: UTC|Z| [A-Z]{2,4})?)|([0-9]{2}:[0-9]{2}:[0-9]{2})|([0-9]{1,3}(?:\.[0-9]{1,3}){3})|((?:https?:\/\/|ftp:\/\/)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?::[0-9]{1,5})?(?:\/[^\s]*)?)/g;
+    let last = 0, m;
+    while ((m = re.exec(line)) !== null) {
+      if (m.index > last) tokens.push(esc(line.slice(last, m.index)));
+      let cls = '';
+      if (m[1]) cls = 't-flag';
+      else if (m[2] || m[3]) cls = 't-time';
+      else if (m[4]) cls = 't-ip';
+      else if (m[5]) cls = 't-url';
+      tokens.push('<span class="' + cls + '">' + esc(m[0]) + '</span>');
+      last = re.lastIndex;
+    }
+    if (last < line.length) tokens.push(esc(line.slice(last)));
+    return tokens.join('');
+  }
+
+  const lines = () => artifact.split(/\r?\n/);
+
+  function el(id) { return document.getElementById(id); }
+
+  /********************** ANALYSIS PANELS **********************/
+  function renderAll() {
+    renderText(); renderHex(); renderStrings(); renderEmail();
+    renderLog(); renderTimeline(); renderNetwork(); renderHashes();
+  }
+
+  function renderText() {
+    el('raw-body').innerHTML = lines().map(l =>
+      '<span class="t-ln">' + (l.trim() ? tokenize(l) : '&nbsp;') + '</span>').join('') || '<span class="term-empty">(empty artifact)</span>';
+  }
+
+  function renderHex() {
+    const bytes = [];
+    for (let i = 0; i < artifact.length && i < 1536; i++) bytes.push(artifact.charCodeAt(i) & 0xFF);
+    if (!bytes.length) { el('hex-body').innerHTML = '<div class="an-row term-empty">(empty)</div>'; return; }
+    let out = '';
+    for (let off = 0; off < bytes.length; off += 16) {
+      const chunk = bytes.slice(off, off + 16);
+      let hexPart = '', ascPart = '';
+      chunk.forEach((b, i) => {
+        hexPart += (b.toString(16).padStart(2, '0')) + (i === 7 ? '  ' : ' ');
+        ascPart += (b >= 32 && b < 127) ? String.fromCharCode(b) : '.';
+      });
+      out += '<div class="an-row"><span class="an-offset">' +
+        off.toString(16).padStart(6, '0') + '</span><span class="an-hex">' + hexPart.padEnd(50, ' ') +
+        '</span><span class="an-v">' + esc(ascPart) + '</span></div>';
+    }
+    el('hex-body').innerHTML = out;
+  }
+
+  function renderStrings() {
+    const res = artifact.match(/[ -~]{4,}/g) || [];
+    el('strings-body').innerHTML = res.length
+      ? res.map((s, i) => '<div class="an-row"><span class="an-offset">' + (i + 1) + '</span><span class="an-v">' + esc(s) + '</span></div>').join('')
+      : '<div class="an-row term-empty">no printable strings ≥ 4 chars</div>';
+  }
+
+  function renderEmail() {
+    const isEmL = /\.(eml|msg)$/i.test({{ station.evidence|tojson }});
+    const head = [], body = [];
+    artifact.split(/\r?\n/).forEach(l => {
+      if (/^[A-Za-z0-9-]+:/.test(l)) head.push(l); else if (l.trim()) body.push(l.trim());
+    });
+    if (!isEmL && !head.length) {
+      el('email-body').innerHTML = '<div class="an-row term-empty">no rfc822 headers found in this artifact</div>';
+      return;
+    }
+    let out = head.length
+      ? head.map(l => {
+          const i = l.indexOf(':');
+          const k = l.slice(0, i), v = l.slice(i + 1).trim();
+          return '<div class="an-row"><span class="an-k">' + esc(k) + '</span><span class="an-v">' + tokenize(v) + '</span></div>';
+        }).join('')
+      : '<div class="an-row term-empty">no headers</div>';
+    if (body.length) {
+      out += '<div class="an-row" style="color:var(--text-muted);font-style:italic;">— body (' + body.length + ' lines) —</div>';
+      body.forEach(l => { out += '<div class="an-row"><span class="an-v">' + tokenize(l) + '</span></div>'; });
+    }
+    el('email-body').innerHTML = out;
+  }
+
+  function renderLog() {
+    el('log-body').innerHTML = lines().map(l =>
+      '<span class="t-ln">' + (l.trim() ? tokenize(l) : '&nbsp;') + '</span>').join('') || '<span class="term-empty">(no log lines)</span>';
+  }
+
+  function renderTimeline() {
+    const re = /[0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}[ T][0-9]{2}:[0-9]{2}(?::[0-9]{2})?(?:\.[0-9]+)?|[0-9]{2}:[0-9]{2}:[0-9]{2}|[A-Z][a-z]{2,3} [0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2}/g;
+    const rows = [];
+    lines().forEach((l, idx) => {
+      let m;
+      while ((m = re.exec(l)) !== null) {
+        rows.push({ t: m[0], c: l.slice(re.lastIndex, Math.min(l.length, re.lastIndex + 72)).trim() });
+      }
+    });
+    rows.sort((a, b) => a.t.localeCompare(b.t));
+    el('timeline-body').innerHTML = rows.length
+      ? rows.map(r => '<div class="an-row"><span class="an-t">' + esc(r.t) + '</span><span class="an-v">' + esc(r.c) + '</span></div>').join('')
+      : '<div class="an-row term-empty">no timestamps extracted from this artifact</div>';
+  }
+
+  function renderNetwork() {
+    const ips = artifact.match(/\b[0-9]{1,3}(?:\.[0-9]{1,3}){3}\b/g) || [];
+    const urls = artifact.match(/https?:\/\/[^\s"'<>]+/g) || [];
+    const domains = artifact.match(/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.[a-z]{2,}(?:\.[a-z]{2,})?(?![a-z0-9])/gi) || [];
+    const ports = artifact.match(/:\d{2,5}\b/g) || [];
+    const uniq = a => Array.from(new Set(a));
+    const all = [];
+    uniq(ips).forEach(v => all.push({ k: 'IP', v }));
+    uniq(urls).forEach(v => all.push({ k: 'URL', v }));
+    uniq(domains).forEach(v => all.push({ k: 'DOMAIN', v }));
+    uniq(ports).forEach(v => all.push({ k: 'PORT', v: v.replace(':','') }));
+    el('network-body').innerHTML = all.length
+      ? all.map(r => '<div class="an-row"><span class="an-k">' + r.k + '</span><span class="an-v">' + tokenize(r.v) + '</span></div>').join('')
+      : '<div class="an-row term-empty">no network indicators found in this artifact</div>';
+  }
+
+  async function renderHashes() {
+    const buf = new TextEncoder().encode(artifact);
+    if (!window.crypto || !crypto.subtle) {
+      el('hash-sha256').textContent = 'not available (needs HTTPS/localhost)';
+      return;
+    }
+    try {
+      const hex = ab => Array.from(new Uint8Array(ab)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const [s1, s256] = await Promise.all([
+        crypto.subtle.digest('SHA-1', buf).then(hex),
+        crypto.subtle.digest('SHA-256', buf).then(hex)
+      ]);
+      el('hash-sha1').textContent = s1;
+      el('hash-sha256').textContent = s256;
+    } catch (e) { /* ignore */ }
+  }
+
+  document.getElementById('hash-compare-btn').addEventListener('click', () => {
+    const v = (document.getElementById('hash-input').value || '').trim().toLowerCase();
+    const vd = document.getElementById('hash-verdict');
+    if (!v) { vd.textContent = ''; return; }
+    const sha1 = (el('hash-sha1').textContent || '').toLowerCase();
+    const sha256 = (el('hash-sha256').textContent || '').toLowerCase();
+    if (v === sha1 || v === sha256) {
+      vd.textContent = '✓ MATCH — hash verified against artifact';
+      vd.style.color = 'var(--success)';
+    } else {
+      vd.textContent = '✗ NO MATCH — hash does not match artifact';
+      vd.style.color = 'var(--danger)';
+    }
+  });
+
+  /********************** TOOLBAR TABS **********************/
+  document.querySelectorAll('.tb-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tb-tab').forEach(b => b.classList.remove('is-active'));
+      document.querySelectorAll('.tb-panel').forEach(p => p.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      const p = document.querySelector('.tb-panel[data-panel2="' + btn.dataset.panel2 + '"]');
+      if (p) p.classList.add('is-active');
+    });
+  });
+
+  /********************** SEARCH **********************/
+  document.getElementById('search-input').addEventListener('input', e => {
+    const q = e.target.value.trim().toLowerCase();
+    const box = el('search-body');
+    if (!q) { box.innerHTML = '<span class="term-empty">type a term to search the artifact…</span>'; return; }
+    let hits = 0;
+    let out = '';
+    lines().forEach((l, i) => {
+      const li = l.toLowerCase();
+      let idx = -1; const found = [];
+      while ((idx = li.indexOf(q, idx + 1)) !== -1) { found.push([idx, idx + q.length]); }
+      if (!found.length) return;
+      hits++;
+      const from = Math.max(0, (found[0][0] < 6 ? 0 : found[0][0] - 6));
+      let line = l;
+      let shown = line.slice(from);
+      found.forEach(([s, end], j) => {
+        const relS = Math.max(0, s - from), relE = end - from, add = (3 - j) * 3;
+        shown = shown.slice(0, relS + add) + '\u0001' + shown.slice(relS + add, relE + add) + '\u0002' + shown.slice(relE + add);
+      });
+      const html = esc(shown.replace(/\u0001/g, '')).replace(/\]\u0002/g, '');
+      out += '<span class="t-ln" style="color:var(--text-dim);">' + (i + 1) + '</span> ';
+      out += '<span class="t-ln">' + tokenize(shown.replace(/^\u0001/, '').replace(/\u0002$/, '')) + '</span>';
+    });
+    box.innerHTML = hits
+      ? out
+      : '<span class="term-empty">no occurrences of &quot;' + esc(q) + '&quot;</span>';
+  });
+
+  /********************** HINT **********************/
+  document.getElementById('hint-btn').addEventListener('click', () => {
+    document.getElementById('hint-area').innerHTML =
+      '<div class="fs-hint"><b>HINT</b><div style="margin-top:4px;">' + esc(hintText) + '</div></div>';
+    document.getElementById('hint-btn').style.display = 'none';
+  });
+
+  /********************** ATTEMPT TRACKER **********************/
+  function refreshAttempts(left) {
+    const dots = document.querySelectorAll('#attempts-track i');
+    const used = MAX_ATTEMPTS - left;
+    dots.forEach((d, i) => d.classList.toggle('used', i < used));
+    document.getElementById('attempts-label').textContent =
+      left > 0 ? 'ATTEMPTS LEFT' : 'NO ATTEMPTS LEFT';
+  }
+  refreshAttempts({{ max_attempts }} - {{ attempts_used }});
+
+  /********************** FINDING SUBMISSION **********************/
+  document.getElementById('finding-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = el('submit-btn');
+    const input = el('finding-value');
+    if (!input.value.trim()) return;
+    btn.disabled = true;
+    btn.textContent = 'VERIFYING…';
+    const res = await fetch('/api/submit', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ station_id: stationId, value: input.value.trim() }) });
+    const data = await res.json();
+    const area = el('result-area');
+    if (data.locked) {
+      area.innerHTML = '<div class="fs-result lock"><b>FLAGGED</b><div>This station is locked after max attempts.</div></div>';
+      btn.textContent = 'FLAGGED — LOCKED';
+      return;
+    }
+    if (data.correct) {
+      area.innerHTML = '<div class="fs-result ok"><b>✓ VERIFIED</b><div>Finding accepted. Evidence confirmed.</div></div>';
+      btn.textContent = 'FINDING VERIFIED';
+      btn.classList.remove('btn-primary'); btn.classList.add('btn-success');
+      input.disabled = true; el('hint-btn').style.display = 'none';
+      setTimeout(() => window.location.reload(), 900);
+    } else {
+      area.innerHTML = '<div class="fs-result bad"><b>✗ INVALID FINDING</b><div>Review the artifact and re-analyze before your next attempt.</div></div>';
+      btn.disabled = false;
+      btn.textContent = 'SUBMIT FINDING';
+      refreshAttempts(data.attempts_left);
+    }
+  });
+
+  /********************** INVESTIGATOR NOTES **********************/
+  let saveT = null;
+  const noteEl = el('note-text');
+  noteEl.addEventListener('input', () => {
+    const save = el('note-save');
+    save.classList.remove('show');
+    clearTimeout(saveT);
+    const body = { station_id: stationId, text: noteEl.value };
+    fetch('/api/notes', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body) }).then(() => {
+        save.classList.add('show');
+        saveT = setTimeout(() => save.classList.remove('show'), 1800);
+      }).catch(() => {});
+  });
+  {% endif %}
+})();
+</script>
+{% endblock %}

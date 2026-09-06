@@ -1,0 +1,661 @@
+"""Seed script: 12 challenge categories + 48 task variants.
+
+Every variant is a real, solvable educational task. Flags are generated
+programmatically (CPR1-XXXX-XXXX) so they never leak category names and are
+stored only server-side in the database.
+
+Usage:
+    python -m round1.seed            # seed into DB (idempotent-ish)
+    python -m round1.seed --reset    # wipe DB then seed
+"""
+import getpass
+import sys
+import time
+
+from werkzeug.security import generate_password_hash
+
+import round1.db as db
+from round1.assign import generate_secret_flag
+
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_PASSWORD = "admin123"
+
+
+# ---------------------------------------------------------------------------
+# 12 CHALLENGE CATEGORIES
+# ---------------------------------------------------------------------------
+CATEGORIES = [
+    {"code": "SQLI",  "title": "SQL Injection Basics", "domain": "Web Application Security",
+     "description": "Understand how unsafe SQL string building can lead to authentication bypass in a simulated database.",
+     "difficulty": "Easy", "points": 100},
+    {"code": "PWDA",  "title": "Password Strength Audit", "domain": "Password Security",
+     "description": "Evaluate a set of fictional passwords against common strength and reuse criteria.",
+     "difficulty": "Easy", "points": 100},
+    {"code": "BIND",  "title": "Binary Decoding", "domain": "Data Encoding",
+     "description": "Decode data encoded in binary, octal, or hex back into readable text.",
+     "difficulty": "Easy", "points": 100},
+    {"code": "NETP",  "title": "Network Port Mapping", "domain": "Networking",
+     "description": "Analyze fictional network scan output to map ports to services and spot anomalies.",
+     "difficulty": "Medium", "points": 100},
+    {"code": "PHIS",  "title": "Phishing Spotter", "domain": "Social Engineering",
+     "description": "Identify the social engineering red flags in fictional phishing messages.",
+     "difficulty": "Medium", "points": 100},
+    {"code": "META",  "title": "Metadata Detective", "domain": "Digital Artifacts",
+     "description": "Analyze fictional metadata to answer questions about document authorship and integrity.",
+     "difficulty": "Medium", "points": 100},
+    {"code": "CIPH",  "title": "Cipher Chain", "domain": "Cryptography",
+     "description": "Decode strings that have been transformed through layered encodings.",
+     "difficulty": "Medium", "points": 100},
+    {"code": "HASH",  "title": "Hash Analysis", "domain": "Hashing",
+     "description": "Identify hash types and match hashes to passwords using a provided wordlist.",
+     "difficulty": "Medium", "points": 100},
+    {"code": "WEBH",  "title": "Web Source Hunt", "domain": "Web Security Basics",
+     "description": "Inspect simulated HTML page source to find clues hidden in comments and attributes.",
+     "difficulty": "Medium-Hard", "points": 100},
+    {"code": "FILE",  "title": "File Magic", "domain": "File Forensics",
+     "description": "Identify real file types from magic bytes and detect extension mismatches.",
+     "difficulty": "Medium-Hard", "points": 100},
+    {"code": "CSAR",  "title": "Caesar/ROT Decode", "domain": "Cryptography",
+     "description": "Decode messages shifted with Caesar/ROT ciphers.",
+     "difficulty": "Medium-Hard", "points": 100},
+    {"code": "OSNT",  "title": "OSINT Link Puzzle", "domain": "OSINT / Logic",
+     "description": "Correlate fictional public-style clues to identify the correct answer.",
+     "difficulty": "Medium-Hard", "points": 100},
+]
+
+
+# ---------------------------------------------------------------------------
+# VARIANTS per category. Each category has exactly 4.
+# Fields: variant_code, question, task_description, provided_data,
+#         expected_answer, difficulty, hint, explanation, estimated_solve_time
+# ---------------------------------------------------------------------------
+VARIANTS = {
+    "SQLI": [
+        {
+            "v": "V1", "difficulty": "Easy",
+            "question": "In the simulated login, which input value makes the WHERE clause ALWAYS TRUE and bypasses the password check?",
+            "task_description": "Analyze the fictional login query. The application builds SQL by directly inserting the username into the query string.",
+            "provided_data": '''Simulated code:
+
+query = "SELECT * FROM users WHERE username = '" + username + "' AND password = '" + password + "'"
+
+Enter the exact injected value for the username field that makes the condition true regardless of password.''',
+            "expected_answer": "' or '1'='1",
+            "hint": "Think about the single quotes. You want to close the string and add an OR that is always true.",
+            "explanation": "Injecting ' OR '1'='1 closes the string, adds an always-true OR, then the trailing '1'=' closes the original quote. The WHERE becomes username='' OR '1'='1' AND ... which is true.",
+            "eta": "3-5 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "Given the input below, what does the final WHERE clause logically evaluate to? Answer TRUE or FALSE.",
+            "task_description": "Evaluate the resulting SQL condition after the unsafe concatenation with the provided input.",
+            "provided_data": '''Query:
+SELECT * FROM users WHERE username = "userx" AND password = "x" OR "1"="1"
+
+Determine whether the overall WHERE condition is always true (authentication bypass possible) or false.''',
+            "expected_answer": "TRUE",
+            "hint": "Check whether the injected OR clause makes the whole condition evaluate to true.",
+            "explanation": "The injected ' OR \"1\"=\"1 makes the condition true for the first row regardless of the password, so the login bypasses.",
+            "eta": "4-6 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "Which two fields are concatenated directly into the SQL string without any validation or escaping (the unsafe concatenations)? Answer with the field names separated by a comma.",
+            "task_description": "Review the simulated login application code and identify the user-controlled variables that are concatenated directly into the query.",
+            "provided_data": '''Simulated code:
+
+def login(username, password):
+    sql = "SELECT * FROM users WHERE username = '" + username + "' " + \\
+          "AND password = '" + password + "'"
+    return db.execute(sql)
+
+Identify the unescaped variables.''',
+            "expected_answer": "username,password",
+            "hint": "Look at which variables are placed inside single quotes via string concatenation.",
+            "explanation": "Both username and password are concatenated directly into the SQL string with single quotes, allowing injection through either field.",
+            "eta": "4-6 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "A simulated comment-breaking payload is submitted. Which comment symbol would terminate the rest of the SQL query and neutralize the trailing password check?",
+            "task_description": "Determine which SQL comment character can be appended to 'admin' -- so the remainder of the query is ignored.",
+            "provided_data": '''Query:
+SELECT * FROM users WHERE username = 'admin' -- ' AND password = 'anything'
+
+Which symbol (as shown in the query) is the inline comment? Enter the exact comment symbol.''',
+            "expected_answer": "--",
+            "hint": "SQLite and many databases use two dashes followed by a space for inline comments.",
+            "explanation": "The -- comments out the rest of the line, so the password check is ignored and the admin user matches.",
+            "eta": "4-6 min",
+        },
+    ],
+    "PWDA": [
+        {
+            "v": "V1", "difficulty": "Easy",
+            "question": "Which password is the WEAKEST (the easiest to crack) among the list? Enter the exact password.",
+            "task_description": "Review the fictional password list and identify the least secure one based on length and complexity.",
+            "provided_data": "Passwords:\n1. Tr0ub4dor&3\n2. 123456\n3. Giraffe#2024!\n4. M4rketing@Blue\n\nWhich is weakest?",
+            "expected_answer": "123456",
+            "hint": "Consider which one is in common top-password lists and has no pattern variation.",
+            "explanation": "123456 is one of the most common weak passwords and trivially guessed.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "The passwords below are associated with fictional accounts. Which password is REUSED by two different accounts?",
+            "task_description": "Find the password that appears more than once across the fictional account list.",
+            "provided_data": "Accounts:\nalice@firm.com -> W1nter@2024\nderek@firm.com -> Green!Forest4\npriya@firm.com -> W1nter@2024\nmarc@firm.com -> P@ssw0rd!X\n\nWhich password is reused?",
+            "expected_answer": "W1nter@2024",
+            "hint": "Compare each account's password to the others and find a match.",
+            "explanation": "W1nter@2024 appears for both alice and priya, indicating password reuse.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "Which password exhibits a predictable pattern (e.g., a weekday name or keyboard sequence) and is therefore weaker?",
+            "task_description": "Identify the password built from a predictable pattern among the fictional list.",
+            "provided_data": "Passwords:\nQwerty123!\n9Gz!kL2#mQ8\ntjgJ7#xR3wE\nMoNdAy2024!\n\nWhich one is predictable?",
+            "expected_answer": "Qwerty123!",
+            "hint": "Look for a keyboard-row sequence followed by a common number.",
+            "explanation": "Qwerty123! starts with the predictable keyboard row 'qwerty' followed by a common suffix, making it guessable.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "Which password FAILS the most security criteria simultaneously (length < 12, no uppercase, no number, no symbol)?",
+            "task_description": "Evaluate each password against four criteria and pick the one that violates the most.",
+            "provided_data": "Passwords:\nA) sunflower\nB) MyDog#2024\nC) aS9!kMm2#\nD) RiverFlow\n\nWhich fails the most criteria? Enter A, B, C, or D.",
+            "expected_answer": "A",
+            "hint": "Count how many of the four rules each password breaks. 'sunflower' has no uppercase, no number, and no symbol.",
+            "explanation": "Option A 'sunflower' is lowercase-only, no digit, no symbol, and short. It breaks all four criteria.",
+            "eta": "4-6 min",
+        },
+    ],
+    "BIND": [
+        {
+            "v": "V1", "difficulty": "Easy",
+            "question": "Decode the binary string to ASCII. What word does it spell?",
+            "task_description": "Convert the provided binary (8-bit groups) into ASCII characters.",
+            "provided_data": "01000010 01101001 01110100",
+            "expected_answer": "Bit",
+            "hint": "Split into 8-bit groups and convert each to a decimal then to a letter.",
+            "explanation": "01000010=66='B', 01101001=105='i', 01110100=116='t' -> 'Bit'.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V2", "difficulty": "Easy",
+            "question": "Decode the binary to find the plaintext word.",
+            "task_description": "Convert the binary to ASCII.",
+            "provided_data": "01110011 01100001 01100110 01100101",
+            "expected_answer": "safe",
+            "hint": "Group into 8-bit chunks and convert to letters.",
+            "explanation": "115='s', 97='a', 102='f', 101='e' -> 'safe'.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "The data below is encoded in OCTAL. Decode it to ASCII. What word is it?",
+            "task_description": "Convert each octal value (3 digits) to its ASCII character.",
+            "provided_data": "150 141 162 144",
+            "expected_answer": "hard",
+            "hint": "Each octal group = one ASCII code. Convert octal to decimal, then to a letter.",
+            "explanation": "150(oct)=104='h', 141=97='a', 162=114='r', 144=100='d' -> 'hard'.",
+            "eta": "4-6 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "This text was encoded by taking each letter's 8-bit binary value, then written as a continuous string. What is the decoded word?",
+            "task_description": "Split the continuous binary string into 8-bit groups and decode.",
+            "provided_data": "01101100011011110111001101110101",
+            "expected_answer": "loss",
+            "hint": "Split into groups of 8 starting from the left.",
+            "explanation": "01101100=108='l', 01101111=111='o', 01110011=115='s', 01110101=117='u' -> 'loss'.",
+            "eta": "4-6 min",
+        },
+    ],
+    "NETP": [
+        {
+            "v": "V1", "difficulty": "Medium",
+            "question": "The scan shows a service on a port. Match the port to its standard service. What service is on port 22?",
+            "task_description": "Analyze the fictional Nmap output and identify the standard service for port 22.",
+            "provided_data": "Nmap scan report for 192.168.1.10\n22/tcp  open  ???\n80/tcp  open  http\n443/tcp open  https\n3389/tcp open  ms-wbt-server",
+            "expected_answer": "ssh",
+            "hint": "Port 22 is the standard port for SSH.",
+            "explanation": "Port 22 is reserved for SSH (Secure Shell).",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "Which port in the scan is UNUSUAL for a normal web server and may indicate an unauthorized service?",
+            "task_description": "Identify the unexpected open port in the fictional scan.",
+            "provided_data": "Nmap scan report for 203.0.113.45\n22/tcp   open  ssh\n80/tcp   open  http\n443/tcp  open  https\n5900/tcp open  vnc\n\nWhich port is unusual for a typical web server?",
+            "expected_answer": "5900",
+            "hint": "Web servers typically expose 80 and 443. A remote desktop port is odd here.",
+            "explanation": "Port 5900 (VNC remote desktop) is unusual for a standard internet-facing web server and is often flagged.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "This host exposes a database port that should not be reachable from the internet. Which port is it?",
+            "task_description": "Identify the database port that is a security concern.",
+            "provided_data": "Nmap scan report for 198.51.100.77\n80/tcp   open  http\n443/tcp  open  https\n3306/tcp open  mysql\n22/tcp   open  ssh\n\nWhich port is the exposed database?",
+            "expected_answer": "3306",
+            "hint": "MySQL uses port 3306.",
+            "explanation": "Port 3306 is MySQL and should not normally be exposed to the internet.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "Two hosts have similar scans. Which service is exposed on host B but NOT on host A, indicating a configuration difference?",
+            "task_description": "Compare the two fictional scans and find the service present only on one host.",
+            "provided_data": 'Host A:\n22/tcp ssh, 80/tcp http, 443/tcp https\n\nHost B:\n22/tcp ssh, 80/tcp http, 443/tcp https, 137/tcp netbios-ssn\n\nWhich service code is on Host B only?',
+            "expected_answer": "netbios-ssn",
+            "hint": "Compare the service lists across both hosts.",
+            "explanation": "netbios-ssn on port 137 is present on Host B but not Host A, an unusual file-sharing exposure.",
+            "eta": "5-7 min",
+        },
+    ],
+    "PHIS": [
+        {
+            "v": "V1", "difficulty": "Medium",
+            "question": "This fictional email uses which social-engineering technique to pressure the victim? Enter the technique name.",
+            "task_description": "Identify the manipulation technique in the fictional email.",
+            "provided_data": 'Email:\nSubject: URGENT - Action required immediately\n"Your account will be suspended in 24 HOURS if you do not click this link and enter your password RIGHT NOW."\n\nWhich technique creates a false urgency?',
+            "expected_answer": "urgency",
+            "hint": "Look at words like URGENT, immediately, 24 HOURS, RIGHT NOW.",
+            "explanation": "The email creates a false sense of urgency and time pressure to force a hasty action.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "The displayed sender claims to be from a bank, but the Reply-To address is different. Which address is the suspicious one?",
+            "task_description": "Compare the spoofed From domain with the actual Reply-To domain.",
+            "provided_data": 'From: "Support @ SafeBank" <support@notbank.example>\nReply-To: <reset@phish-site.example>\n\nThe suspicious domain used for replies is:',
+            "expected_answer": "phish-site.example",
+            "hint": "A legitimate bank would use its own domain for replies.",
+            "explanation": "The Reply-To points to phish-site.example, not the bank's domain, revealing the attacker's address.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "The email contains a link that looks legitimate but points to a different site. Enter the ACTUAL destination domain of the link.",
+            "task_description": "Find the real URL behind the display text of the link.",
+            "provided_data": 'Email:\n"Click here to verify: https://login-safebank.example/verify"\n(actual href: https://fake-login-abc.example/verify)\n\nThe actual destination is:',
+            "expected_answer": "fake-login-abc.example",
+            "hint": "The href attribute holds the real destination, not the display text.",
+            "explanation": "The displayed text says safebank but the href points to fake-login-abc.example, a classic phishing disambiguation.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "The message impersonates the company CEO but uses which non-corporate email domain that gives away the deception?",
+            "task_description": "Identify the impersonation clue in the fictional email.",
+            "provided_data": 'Email:\nFrom: "Sarah CEO" <sarah.ceo@gmail.example>\n"Sarah, our CEO, needs you to wire funds immediately."\n\nThe non-corporate sender domain is:',
+            "expected_answer": "gmail.example",
+            "hint": "A corporate CEO would use the company domain, not a public mail service.",
+            "explanation": "Using a public mail domain (gmail.example) instead of the corporate domain reveals the impersonation.",
+            "eta": "5-7 min",
+        },
+    ],
+    "META": [
+        {
+            "v": "V1", "difficulty": "Medium",
+            "question": "Which author name is stored in the metadata of this fictional document?",
+            "task_description": "Read the document metadata and identify the author field.",
+            "provided_data": "Document: report_final.docx\nMetadata:\n  Author       : j.morales\n  Last Modified By : j.morales\n  Created      : 2025-11-12\n  Software      : LibreOffice 7.4\n\nThe author value is:",
+            "expected_answer": "j.morales",
+            "hint": "Look at the Author metadata field.",
+            "explanation": "The Author metadata field shows j.morales.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "What is the Last Saved / modification timestamp shown in the metadata?",
+            "task_description": "Read the modification timestamp from the fictional metadata.",
+            "provided_data": "Document: invoice.pdf\nMetadata:\n  Author      : finance-svc\n  Creation    : 2025-09-01 09:00\n  Modified    : 2025-09-01 11:32\n  Producer    : PDFKit\n\nThe modification time is:",
+            "expected_answer": "2025-09-01 11:32",
+            "hint": "Look for the Modified/last-saved field.",
+            "explanation": "The Modified field records 2025-09-01 11:32.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "Which software application was used to create this fictional image?",
+            "task_description": "Identify the software from the image metadata (Exif).",
+            "provided_data": "Image: photo_001.jpg\nExif Metadata:\n  Make         : SampleCam\n  Model        : SN-500\n  Software     : GIMP 2.10\n  DateTime     : 2025-06-15 14:22\n\nThe software used is:",
+            "expected_answer": "GIMP 2.10",
+            "hint": "Look at the Software field in Exif metadata.",
+            "explanation": "The Exif Software field shows GIMP 2.10, indicating the image was edited with GIMP.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "The document claims to have been typed on 2025-08-20, but its metadata shows it was MODIFIED a week later. Enter the actual metadata modification date.",
+            "task_description": "Spot the metadata inconsistency between the claimed date and the stored modification date.",
+            "provided_data": 'Document: contract.pdf includes a text line: "Prepared on 2025-08-20".\nMetadata Modified field: 2025-08-27\n\nWhat is the actual metadata modification date?',
+            "expected_answer": "2025-08-27",
+            "hint": "The stored metadata is the reliable timestamp, not just the document text.",
+            "explanation": "The metadata Modified field shows 2025-08-27, a week after the claimed date, revealing tampering.",
+            "eta": "5-7 min",
+        },
+    ],
+    "CIPH": [
+        {
+            "v": "V1", "difficulty": "Easy",
+            "question": "Decode the string: first Caesar-shift it back by 1 (ROT-1), then Base64-decode the result. What is the final plaintext?",
+            "task_description": "The value was made by Base64-encoding the result of Caesar-shifting each letter +1. Reverse: Caesar-shift each letter back 1, then Base64-decode.",
+            "provided_data": "QnV1YmRs\n\nStep 1: Caesar-shift each letter back by 1.\nStep 2: Base64-decode the result.",
+            "expected_answer": "Attack",
+            "hint": "Reverse the Caesar shift first (each letter back 1), then Base64-decode.",
+            "explanation": "ROT1 of each letter then Base64 decode yields 'Attack'.",
+            "eta": "5-7 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "The value is a Base64 string that encodes the Hex representation of the plaintext. Decode both layers. What is the plaintext word?",
+            "task_description": "The plaintext was hex-encoded to ASCII, then that hex text was Base64-encoded. Decode Base64, then convert the hex to ASCII.",
+            "provided_data": "NGU2OTc0NjU=\n\nStep 1: Base64-decode (you get hex characters).\nStep 2: Convert the hex pairs to ASCII.",
+            "expected_answer": "Nite",
+            "hint": "Base64-decode first, you get hex; then convert hex pairs to ASCII.",
+            "explanation": "Base64 decode gives hex 4e697465 which spells 'Nite'.",
+            "eta": "5-7 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "The value is the hex-encoded ASCII of a Caesar-shifted string (shift +3). Decode the hex, then shift each letter back 3. What is the plaintext?",
+            "task_description": "Convert hex to ASCII gives a Caesar(+3)-shifted string; shift each letter back by 3.",
+            "provided_data": "4e6868736875\n\nStep 1: Hex-decode to ASCII (letters).\nStep 2: Caesar-shift each letter back by 3.",
+            "expected_answer": "Keeper",
+            "hint": "Hex decode -> a Caesar-3 string, then shift each letter back 3.",
+            "explanation": "Hex gives 'Nhhshu', Caesar shift back 3 gives 'Keeper'.",
+            "eta": "6-8 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "Three layers: Caesar(+1) -> Base64 -> Hex. Reverse the chain (hex-decode, then Base64-decode, then Caesar-shift back 1). What is the final plaintext?",
+            "task_description": "The plaintext was first Caesar-shifted +1, then Base64-encoded, then that Base64 string was hex-encoded. Reverse all three layers in order.",
+            "provided_data": "556e5a716257303d\n\nStep 1: Hex-decode to ASCII (a Base64 string).\nStep 2: Base64-decode.\nStep 3: Caesar-shift each letter back by 1.",
+            "expected_answer": "Quill",
+            "hint": "Hex-decode to get Base64, decode Base64, then shift each letter back 1.",
+            "explanation": "Following the exact chain yields the word 'Quill'.",
+            "eta": "8-10 min",
+        },
+    ],
+    "HASH": [
+        {
+            "v": "V1", "difficulty": "Medium",
+            "question": "The hash below is an MD5 hash of a password from the provided wordlist. Which password matches?",
+            "task_description": "Compute MD5 of each wordlist entry and find which equals the given hash.",
+            "provided_data": "Hash: 5f4dcc3b5aa765d61d8327deb882cf99\nWordlist:\n- admin\n- password\n- temp123\n- secret",
+            "expected_answer": "password",
+            "hint": "MD5('password') = 5f4dcc3b5aa765d61d8327deb882cf99.",
+            "explanation": "The classic MD5 5f4dcc3b5aa765d61d8327deb882cf99 is the hash of 'password'.",
+            "eta": "4-6 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "What hash ALGORITHM produced this 32-character hexadecimal value?",
+            "task_description": "Identify the hash type by its length/character set.",
+            "provided_data": "e10adc3949ba59abbe56e057f20f883e\n\nWhat hash type is a 32-char hex string?",
+            "expected_answer": "MD5",
+            "hint": "32 hex characters = 128 bits = MD5.",
+            "explanation": "A 32-character hexadecimal hash of 128 bits is MD5.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "Which password from the wordlist, when hashed with SHA256, produces THIS hash?",
+            "task_description": "Find the SHA256 matching word in the provided list.",
+            "provided_data": "Hash: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8\nWordlist:\n- hello\n- qwerty\n- letmein\n- pass123",
+            "expected_answer": "qwerty",
+            "hint": "SHA256('qwerty') = 5e884898...d1542d8.",
+            "explanation": "The given SHA256 digest corresponds to the word 'qwerty'.",
+            "eta": "5-7 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "An account stores only an MD5 hash. Which password from the wordlist is the WEAKEST match (recoverable) and would crack fastest? Enter the password.",
+            "task_description": "All wordlist entries hash to a value; identify which is the weakest / most common.",
+            "provided_data": "Account hash: 5f4dcc3b5aa765d61d8327deb882cf99\nWordlist: admin, password, cookie, winter\n\nWhich is the weak password?",
+            "expected_answer": "password",
+            "hint": "Find which word matches the hash (classic MD5 of password) and is also the weakest.",
+            "explanation": "The hash is MD5('password'); 'password' is also the weakest/most common choice.",
+            "eta": "5-7 min",
+        },
+    ],
+    "WEBH": [
+        {
+            "v": "V1", "difficulty": "Medium-Hard",
+            "question": "Inspect the fictional page source. A clue is hidden in an HTML comment. What is the clue word?",
+            "task_description": "Read the HTML source and find the value in a comment.",
+            "provided_data": '<!-- hint: the admin panel is at /console -->\n<html><body>Welcome to the site.</body></html>\n\nWhat clue value is in the comment? (the word after "hint:")',
+            "expected_answer": "the admin panel is at /console",
+            "hint": "HTML comments are delimited by <!-- and -->.",
+            "explanation": "The comment reveals a hidden route clue.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium-Hard",
+            "question": "The page includes a hidden data attribute. What is the value of data-secret in the element?",
+            "task_description": "Read the value of the data-secret attribute in the fictional HTML.",
+            "provided_data": '<div id="app" data-version="2.3" data-secret="blueprint">App</div>\n\nWhat is the data-secret value?',
+            "expected_answer": "blueprint",
+            "hint": "Attributes are name=\"value\" pairs in the tag.",
+            "explanation": "The data-secret attribute holds the value 'blueprint'.",
+            "eta": "3-4 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium-Hard",
+            "question": "The robots.txt of a fictional site lists a path. Which path is disallowed?",
+            "task_description": "Explain a robots.txt clue.",
+            "provided_data": "User-agent: *\nDisallow: /private/\nDisallow: /admin\n\nWhich path is disallowed (exact value after Disallow:)?",
+            "expected_answer": "/private/",
+            "hint": "Read the first Disallow directive.",
+            "explanation": "robots.txt disallows /private/ which may hide content not linked on the main site.",
+            "eta": "3-5 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "The page meta tag contains an author clue. What is the meta author content?",
+            "task_description": "Read the meta description/author tag.",
+            "provided_data": '<meta name="author" content="t.owens">\n<html><body>...</body></html>\n\nWhat is the author meta content?',
+            "expected_answer": "t.owens",
+            "hint": "Look at the content attribute of the meta tag.",
+            "explanation": "The meta author tag reveals t.owens as a hidden detail.",
+            "eta": "3-5 min",
+        },
+    ],
+    "FILE": [
+        {
+            "v": "V1", "difficulty": "Medium-Hard",
+            "question": "A file named 'report.png' actually has the magic bytes of a PDF. What is the REAL file type?",
+            "task_description": "Identify the real file type from the magic bytes, despite the extension.",
+            "provided_data": "File: report.png\nFirst bytes (hex): 25 50 44 46 2D\n\nThe real file type is:",
+            "expected_answer": "PDF",
+            "hint": "25 50 44 46 2D is the magic for '%PDF-'.",
+            "explanation": "The magic bytes '%PDF-1.' indicate it is really a PDF despite the .png extension.",
+            "eta": "3-5 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium-Hard",
+            "question": "Identify the file type whose magic bytes are 89 50 4E 47 0D 0A 1A 0A.",
+            "task_description": "Match the magic bytes to the correct file format.",
+            "provided_data": "Hex: 89 50 4E 47 0D 0A 1A 0A\n\nWhat file type?",
+            "expected_answer": "PNG",
+            "hint": "89 50 4E 47 is the signature for PNG images.",
+            "explanation": "The signature 0x89 'PNG' identifies a PNG image.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium-Hard",
+            "question": "A file with extension .txt actually starts with the ZIP magic bytes. What is the real type?",
+            "task_description": "Identify the mismatch between extension and magic bytes.",
+            "provided_data": "File: notes.txt\nFirst bytes: 50 4B 03 04\n\nThe real file type is:",
+            "expected_answer": "ZIP",
+            "hint": "PK (50 4B) is the ZIP archive signature.",
+            "explanation": "The PK signature indicates a ZIP archive disguised with a .txt extension.",
+            "eta": "3-5 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "Which file type is identified by hex 47 49 46 38 37 61 (GIF87a)?",
+            "task_description": "Match the magic bytes to a format.",
+            "provided_data": "Hex: 47 49 46 38 37 61\n\nWhat file type?",
+            "expected_answer": "GIF",
+            "hint": "GIF87a literally spells 'GIF87a'.",
+            "explanation": "The bytes spell 'GIF87a', the signature for GIF images.",
+            "eta": "2-3 min",
+        },
+    ],
+    "CSAR": [
+        {
+            "v": "V1", "difficulty": "Easy",
+            "question": "Decode the ROT13 string. What is the plaintext word?",
+            "task_description": "Apply ROT13 to each letter.",
+            "provided_data": "pbqr",
+            "expected_answer": "code",
+            "hint": "ROT13 shifts letters by 13; p->c, b->o, q->d, r->e.",
+            "explanation": "ROT13 of 'pbqr' is 'code'.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium",
+            "question": "This string is Caesar-shifted by 3 (A->D). Decode by shifting back 3. What word is it?",
+            "task_description": "Reverse a Caesar shift of 3 to recover the word.",
+            "provided_data": "Vshdulxqlqj\n\nShift each letter back 3.",
+            "expected_answer": "Securing",
+            "hint": "V->S, s->p, h->e, d->a, u->r, l->i, x->u, q->n, l->i, q->n, j->g.",
+            "explanation": "Caesar -3 of 'Vshdulxqlqj' yields 'Securing'.",
+            "eta": "5-7 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium",
+            "question": "First reverse the string, then Caesar-shift back 3. What is the plaintext word?",
+            "task_description": "Reverse the string then apply Caesar shift -3.",
+            "provided_data": "Grohq dsdg\n\nReverse to 'gdap dhorG', then shift back 3.",
+            "expected_answer": "alert",
+            "hint": "Reverse the whole string first, then unshift each letter by 3.",
+            "explanation": "Reversing and Caesar -3 yields 'alert'.",
+            "eta": "6-8 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "The string is Caesar-shifted by an unknown amount (brute-force all 25). The readable word is what?",
+            "task_description": "Try all shifts; find the meaningful English word.",
+            "provided_data": "Lzdfq\n\n(Hint: try ROT1..ROT25; one gives an English word.)",
+            "expected_answer": "Cipher",
+            "hint": "A Caesar shift of +9 or -17 gives a real word.",
+            "explanation": "The readable result is 'Cipher'.",
+            "eta": "6-8 min",
+        },
+    ],
+    "OSNT": [
+        {
+            "v": "V1", "difficulty": "Medium-Hard",
+            "question": "A fictional profile on 'Hubsight' lists a co-worker name. What is that public-style profile username?",
+            "task_description": "Correlate the clues from a fictional profile to answer.",
+            "provided_data": "Alice works at Acme. Her public Hubsight profile lists her handle as 'alice_dev' and her location as 'Bengaluru'.\n\nThe Hubsight username is:",
+            "expected_answer": "alice_dev",
+            "hint": "The profile handle is the username.",
+            "explanation": "The public profile clearly lists the handle alice_dev.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V2", "difficulty": "Medium-Hard",
+            "question": "A fictional company blog post is signed by the author who built the project. Which first name signed the post?",
+            "task_description": "Read the fictional blog post and identify the author.",
+            "provided_data": 'Blog: "Project Nova v2 launched today!" — Signed: "— Rajesh" \nThe author\'s first name is:',
+            "expected_answer": "Rajesh",
+            "hint": "The signature directly names the author.",
+            "explanation": "The post is signed by Rajesh.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V3", "difficulty": "Medium-Hard",
+            "question": "A fictional public project README includes a maintainer email domain. What is the domain (after the @)?",
+            "task_description": "Extract a domain from the fictional README.",
+            "provided_data": "README: 'Maintainer: dev-team@openforge.example'\n\nThe email domain is:",
+            "expected_answer": "openforge.example",
+            "hint": "The domain is everything after the @.",
+            "explanation": "The domain after @ is openforge.example.",
+            "eta": "2-3 min",
+        },
+        {
+            "v": "V4", "difficulty": "Medium-Hard",
+            "question": "Correlate these fictional clues: the person who posted the announcement also manages the docs repo. What is their handle?",
+            "task_description": "Join two fictional public clues to find the answer.",
+            "provided_data": "Clue 1: The announcement post is by 'docs_mgr'.\nClue 2: The docs repo is managed by 'km_team'.\n\nThe announcement author's handle is:",
+            "expected_answer": "docs_mgr",
+            "hint": "The announcement post directly states the author handle.",
+            "explanation": "The announcement is posted by docs_mgr.",
+            "eta": "3-4 min",
+        },
+    ],
+}
+
+
+# ---------------------------------------------------------------------------
+# Seed routine
+# ---------------------------------------------------------------------------
+
+def seed(reset=False):
+    if reset:
+        db.reset_db()
+    else:
+        db.init_db()
+
+    conn = db.get_connection()
+    try:
+        # Insert categories and remember their DB ids / codes
+        cat_id_by_code = {}
+        for cat in CATEGORIES:
+            cur = conn.execute(
+                "INSERT OR IGNORE INTO challenge_categories "
+                "(challenge_code, title, domain, description, difficulty, points, active) "
+                "VALUES (?,?,?,?,?,?,1)",
+                (cat["code"], cat["title"], cat["domain"], cat["description"],
+                 cat["difficulty"], cat["points"]),
+            )
+            # get id (either new or existing)
+            row = conn.execute(
+                "SELECT id FROM challenge_categories WHERE challenge_code=?",
+                (cat["code"],),
+            ).fetchone()
+            cat_id_by_code[cat["code"]] = row["id"]
+
+        # Insert variants
+        for code, variants in VARIANTS.items():
+            clist = VARIANTS[code]
+            assert len(clist) == 4, f"Category {code} must have exactly 4 variants (got {len(clist)})"
+            cat_id = cat_id_by_code[code]
+            for i, v in enumerate(clist, start=1):
+                flag = generate_secret_flag(len(CATEGORIES) * (i))
+                conn.execute(
+                    "INSERT OR IGNORE INTO challenge_variants "
+                    "(challenge_category_id, variant_code, question, task_description, "
+                    "provided_data, expected_answer, flag, difficulty, hint, explanation, "
+                    "estimated_solve_time) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    (cat_id, v["v"], v["question"], v["task_description"],
+                     v["provided_data"], v["expected_answer"], flag,
+                     v["difficulty"], v["hint"], v["explanation"], v["eta"]),
+                )
+        conn.commit()
+        num_variants = sum(len(v) for v in VARIANTS.values())
+        print(f"Seeded {len(CATEGORIES)} categories and {num_variants} variants.")
+
+        # Create / verify default admin account
+        conn.execute(
+            "INSERT OR IGNORE INTO admins (username, password_hash) VALUES (?,?)",
+            (DEFAULT_ADMIN_USERNAME,
+             generate_password_hash(DEFAULT_ADMIN_PASSWORD)),
+        )
+        conn.commit()
+        print(f"Admin account ready: username='{DEFAULT_ADMIN_USERNAME}', "
+              f"password='{DEFAULT_ADMIN_PASSWORD}'")
+    finally:
+        conn.close()
+
+
+if __name__ == "__main__":
+    reset_flag = "--reset" in sys.argv
+    seed(reset=reset_flag)

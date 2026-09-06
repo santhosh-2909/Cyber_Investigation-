@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Cyber Puzzle</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+</head>
+<body>
+  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;">
+
+    <!-- Cinematic hacker scene (decorative background) -->
+    <div class="cyber-scene" aria-hidden="true">
+      <div class="cs-glows"></div>
+      <div class="cs-hood"></div>
+      <div class="cs-binary"></div>
+      <div class="cs-overlay"></div>
+    </div>
+
+    <div class="pub-auth" style="max-width:420px;">
+      <a href="{{ url_for('landing') }}" class="hud-nav-link hud-btn-ghost" style="display:inline-flex;margin-bottom:16px;">&larr; BACK TO MAIN PAGE</a>
+      <div class="pub-auth-card">
+        <div class="hud-kicker" style="color:var(--hud-purple-lt);">ROUND 1 ADMIN</div>
+        <h2 class="hud-h1" style="margin:8px 0 20px;">Administrator</h2>
+        {% if error %}
+          <div style="background:rgba(255,176,32,0.08);border:1px solid #FFB020;padding:12px 14px;border-radius:10px;margin-bottom:16px;">
+            <span style="color:var(--hud-amber);font-size:0.85rem;">{{ error }}</span>
+          </div>
+        {% endif %}
+        <form method="POST" action="{{ url_for('r1.r1_admin_login') }}">
+          <div style="margin-bottom:14px;">
+            <label class="pub-label">USERNAME</label>
+            <input type="text" name="username" class="pub-field" required>
+          </div>
+          <div style="margin-bottom:20px;">
+            <label class="pub-label">PASSWORD</label>
+            <input type="password" name="password" class="pub-field" required>
+          </div>
+          <button type="submit" class="hud-btn btn-lg" style="width:100%;">SIGN IN</button>
+        </form>
+        <p style="margin-top:16px;font-size:0.75rem;color:var(--hud-dim);text-align:center;">Default: admin / admin123</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

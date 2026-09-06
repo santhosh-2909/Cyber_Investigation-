@@ -1,0 +1,147 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 1 Questions{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 1 &mdash; Question Bank</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Variants per challenge (answers visible to admins only)</div>
+  </div>
+  <select onchange="location.href='/admin/round1/questions?challenge=' + this.value" style="background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:8px 10px;">
+    <option value="">ALL CHALLENGES</option>
+    {% for c in challenges %}
+    <option value="{{ c.id }}" {% if selected and selected|int == c.id %}selected{% endif %}>{{ c.title }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Questions ({{ variants | length }})</h3>
+    <div class="ap-row">
+      <a href="{{ url_for('admin_r1_validation') }}" class="ap-btn sm ghost">VALIDATION MODES</a>
+      <button class="ap-btn sm" onclick="openForm()">NEW QUESTION</button>
+    </div>
+  </div>
+  {% if variants %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Challenge</th><th>Variant</th><th>Title / Question</th><th>Validation</th><th>Status</th><th>Actions</th></tr>
+      {% for v in variants %}
+      <tr>
+        <td>{{ v.category_title }}<div class="ap-mono ap-muted" style="font-size:10px;">{{ v.challenge_code }}</div></td>
+        <td class="ap-mono">{{ v.variant_code }}</td>
+        <td>
+          <span class="cell-strong">{{ v.title or v.question or 'Untitled' }}</span>
+          <div class="ap-muted" style="font-size:11px;max-width:420px;">{{ v.question }}</div>
+          <div class="ap-mono ap-muted" style="font-size:10px;">ans: {{ v.expected_answer }}</div>
+        </td>
+        <td><span class="ap-badge neutral">{{ v.validation_mode }}</span></td>
+        <td>
+          <span class="ap-badge {{ 'success' if v.status == 'PUBLISHED' else 'muted' }}">{{ v.status }}</span>
+          <button class="ap-btn sm ghost" onclick="toggleStatus({{ v.id }}, '{{ 'ARCHIVED' if v.status == 'PUBLISHED' else 'PUBLISHED' }}')">{% if v.status == 'PUBLISHED' %}ARCHIVE{% else %}PUBLISH{% endif %}</button>
+        </td>
+        <td>
+          <div class="ap-row" style="gap:6px;">
+            <button class="ap-btn sm ghost" onclick="edit({{ v.id }})">EDIT</button>
+            <button class="ap-btn sm danger" onclick="del({{ v.id }})">DELETE</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No questions in this view.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var editable = null;
+  function openForm() {
+    editable = null;
+    document.getElementById('modalTitle').textContent = 'New Question';
+    document.getElementById('q_question').value = '';
+    document.getElementById('q_answer').value = '';
+    document.getElementById('q_hint').value = '';
+    document.getElementById('q_challenge').required = true;
+    document.getElementById('apModal').classList.add('open');
+  }
+  function edit(id) {
+    editable = id;
+    fetch('/admin/round1/questions/' + id).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Not found', true); return; }
+        var q = d.question;
+        document.getElementById('q_challenge').value = q.challenge_category_id;
+        document.getElementById('q_question').value = q.question || '';
+        document.getElementById('q_answer').value = q.expected_answer || '';
+        document.getElementById('q_hint').value = q.hint || '';
+        document.getElementById('q_validation').value = q.validation_mode || 'NORMALIZED';
+        document.getElementById('modalTitle').textContent = 'Edit Question #' + id;
+        document.getElementById('apModal').classList.add('open');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+  function save() {
+    var payload = {
+      challenge_category_id: document.getElementById('q_challenge').value,
+      question: document.getElementById('q_question').value.trim(),
+      expected_answer: document.getElementById('q_answer').value.trim(),
+      hint: document.getElementById('q_hint').value.trim(),
+      validation_mode: document.getElementById('q_validation').value
+    };
+    if (editable) payload.variant_id = editable;
+    if (!payload.challenge_category_id) { apToast('Choose a challenge.', true); return; }
+    if (!payload.question) { apToast('Question text is required.', true); return; }
+    ApOpenForm('/admin/round1/questions/save', payload);
+  }
+  function toggleStatus(id, st) { ApOpenForm('/admin/round1/questions/' + id + '/status', { status: st }); }
+  function del(id) {
+    if (!confirm('Delete this question?')) return;
+    ApOpenForm('/admin/round1/questions/' + id + '/delete', {});
+  }
+</script>
+{% endblock %}
+
+{% block modal %}
+<div class="ap-modal-head">
+  <h3 id="modalTitle">Question</h3>
+  <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+</div>
+<div class="ap-form-grid">
+  <div class="ap-field">
+    <label>Challenge</label>
+    <select id="q_challenge">
+      <option value="">SELECT CHALLENGE</option>
+      {% for c in challenges %}
+      <option value="{{ c.id }}">{{ c.title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="ap-field">
+    <label>Validation mode</label>
+    <select id="q_validation">
+      {% for m in modes %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="ap-field" style="grid-column:1 / -1;">
+    <label>Question</label>
+    <textarea id="q_question"></textarea>
+  </div>
+  <div class="ap-field" style="grid-column:1 / -1;">
+    <label>Expected answer</label>
+    <input id="q_answer">
+  </div>
+  <div class="ap-field" style="grid-column:1 / -1;">
+    <label>Hint</label>
+    <input id="q_hint">
+  </div>
+</div>
+<div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+  <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+  <button class="ap-btn" onclick="save()">SAVE</button>
+</div>
+{% endblock %}

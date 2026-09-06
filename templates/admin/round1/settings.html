@@ -1,0 +1,73 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 1 Settings{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 1 Settings</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">MIXED FUNDAMENTALS configuration</div>
+  </div>
+</div>
+
+<div class="ap-panel" style="max-width:760px;">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Round Configuration</h3></div>
+  <div class="ap-form-grid">
+    <div class="ap-field">
+      <label>Display name</label>
+      <input id="s_display_name" value="{{ r1.display_name }}">
+    </div>
+    <div class="ap-field">
+      <label>Status</label>
+      <select id="s_status">
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if s == r1.status %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ap-field">
+      <label>Timer (minutes)</label>
+      <input id="s_timer" type="number" value="{{ r1.timer_minutes }}">
+    </div>
+    <div class="ap-field">
+      <label>Max lab attempts</label>
+      <input id="s_max" type="number" value="{{ r1.max_attempts }}">
+    </div>
+    <div class="ap-field">
+      <label>Scoring mode</label>
+      <select id="s_scoring">
+        <option value="AUTO" {% if r1.scoring_mode == 'AUTO' %}selected{% endif %}>AUTO</option>
+        <option value="MANUAL" {% if r1.scoring_mode == 'MANUAL' %}selected{% endif %}>MANUAL</option>
+      </select>
+    </div>
+    <div class="ap-field" style="justify-content:flex-end;">
+      <label class="ap-check">
+        <input id="s_access" type="checkbox" {% if r1.access_enabled %}checked{% endif %}>
+        Allow participant logins
+      </label>
+    </div>
+    <div class="ap-field" style="grid-column:1 / -1;">
+      <label>Description</label>
+      <textarea id="s_desc">{{ r1.description }}</textarea>
+    </div>
+  </div>
+  <button class="ap-btn" onclick="saveSettings()">SAVE SETTINGS</button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function saveSettings() {
+    var payload = {
+      display_name: document.getElementById('s_display_name').value.trim(),
+      status: document.getElementById('s_status').value,
+      timer_minutes: parseInt(document.getElementById('s_timer').value || '0', 10),
+      max_attempts: parseInt(document.getElementById('s_max').value || '0', 10),
+      scoring_mode: document.getElementById('s_scoring').value,
+      access_enabled: document.getElementById('s_access').checked,
+      description: document.getElementById('s_desc').value.trim()
+    };
+    ApOpenForm('/admin/round1/settings/save', payload);
+  }
+</script>
+{% endblock %}

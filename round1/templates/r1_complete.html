@@ -1,0 +1,50 @@
+{% extends "r1_base.html" %}
+{% block title %}{{ 'Round Complete' if session_row.status == 'COMPLETED' else 'Time Expired' }} - Cyber Puzzle{% endblock %}
+{% block content %}
+<div class="hud-panel hud-panel-cn" style="max-width:760px;margin:2vh auto 0;text-align:center;padding:44px 32px;">
+  <div class="hud-complete-check">&#10003;</div>
+  <div class="hud-kicker" style="margin-top:20px;color:{{ 'var(--hud-green)' if session_row.status == 'COMPLETED' else 'var(--hud-red)' }};">{{ session_row.status }}</div>
+  <h1 class="hud-h1" style="font-size:clamp(1.6rem,4vw,2.4rem);margin:10px 0 8px;">
+    {{ 'ROUND 1 COMPLETE' if session_row.status == 'COMPLETED' else 'TIME EXPIRED' }}
+  </h1>
+  <p class="hud-sub" style="max-width:460px;margin:0 auto;">
+    {{ 'Your Round 1 session has concluded. Round Complete.' if session_row.status == 'COMPLETED' else 'Your Round 1 session has ended automatically. The server stopped accepting answers when the 30-minute deadline passed.' }}
+  </p>
+
+  <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;margin:34px 0 6px;">
+    <div>
+      <div class="hud-bigstat">{{ session_row.score }}<span class="u">/ 600</span></div>
+      <div class="hud-stat-label">Score</div>
+    </div>
+    <div style="width:1px;height:44px;background:var(--hud-line);"></div>
+    <div>
+      <div class="hud-bigstat">{{ session_row.challenges_solved }}<span class="u">/ 6</span></div>
+      <div class="hud-stat-label">Challenges Solved</div>
+    </div>
+  </div>
+</div>
+
+<div class="hud-panel" style="max-width:760px;margin:22px auto 0;">
+  <div class="hud-panel-title">Your Performance</div>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    {% for a in assignments %}
+    <div class="hud-datarow" style="padding:10px 4px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="hud-badge hud-badge-purple">{{ a.challenge_code }}</span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--hud-muted);line-height:1.2;">{{ a.title }}</span>
+      </div>
+      <span style="font-family:var(--font-mono);font-size:11px;">
+        {% if a.status == 'COMPLETED' %}
+          <span style="color:var(--hud-green);">+{{ a.points_awarded }}</span>
+        {% else %}
+          <span style="color:var(--hud-dim);">0</span>
+        {% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('r1.r1_landing') }}" class="hud-btn hud-btn-ghost">&larr; BACK TO HOME</a>
+  </div>
+</div>
+{% endblock %}

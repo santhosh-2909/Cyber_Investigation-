@@ -1,0 +1,120 @@
+{% extends "admin_base.html" %}
+{% block title %}Content Manager - Round 1 - Admin{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-xl flex-wrap" style="gap:12px;">
+  <div class="animate-slide-up">
+    <h1 style="font-size:2rem;">ROUND 1 CHALLENGE EDITOR</h1>
+    <p class="text-secondary" style="margin-top:4px;">Create and manage technical CTF challenges.</p>
+  </div>
+  <div class="animate-slide-up">
+    <button class="btn btn-primary" onclick="showToast('New challenge draft created', 'success')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      NEW CHALLENGE
+    </button>
+  </div>
+</div>
+
+{% for ch in challenges %}
+<div class="card mb-lg animate-slide-up stagger-{{ (loop.index0 % 5) + 1 }}">
+  <div class="card-header">
+    <div class="flex items-center gap-md">
+      <span class="font-mono text-dim" style="font-size:0.75rem;">{{ '%02d' % loop.index }}</span>
+      <strong style="color:var(--text-primary);">{{ ch.title }}</strong>
+      <span class="badge badge-accent">{{ ch.domain }}</span>
+      <span class="badge badge-neutral">{{ ch.difficulty }}</span>
+    </div>
+    <span class="badge {% if ch.published %}badge-success badge-dot{% else %}badge-neutral{% endif %}">
+      {{ 'PUBLISHED' if ch.published else 'DRAFT' }}
+    </span>
+  </div>
+
+  <div class="form-grid-3">
+    <div class="form-group">
+      <label class="form-label">CHALLENGE NUMBER</label>
+      <input type="text" class="form-input form-input-mono" value="{{ '%02d' % loop.index }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">TITLE</label>
+      <input type="text" class="form-input" value="{{ ch.title }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">DOMAIN</label>
+      <select class="form-select">
+        <option>{{ ch.domain }}</option>
+        <option>WEB</option><option>CRYPTO</option><option>FORENSICS</option><option>NETWORKING</option><option>OSINT</option><option>SECURITY</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">DESCRIPTION</label>
+    <textarea class="form-textarea" rows="2">{{ ch.task }}</textarea>
+  </div>
+
+  <div class="form-grid-3">
+    <div class="form-group">
+      <label class="form-label">ARTIFACT</label>
+      <input type="text" class="form-input form-input-mono" value="{{ ch.artifact }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">FLAG ANSWER</label>
+      <input type="text" class="form-input form-input-mono" value="{{ ch.flag }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">POINTS</label>
+      <input type="text" class="form-input form-input-mono" value="{{ ch.points }}">
+    </div>
+  </div>
+
+  <div class="form-grid-3">
+    <div class="form-group">
+      <label class="form-label">HINT</label>
+      <input type="text" class="form-input" value="{{ ch.hint }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">HINT PENALTY</label>
+      <input type="text" class="form-input form-input-mono" value="-10">
+    </div>
+    <div class="form-group">
+      <label class="form-label">STATUS</label>
+      <select class="form-select">
+        <option {% if ch.published %}selected{% endif %}>PUBLISHED</option>
+        <option {% if not ch.published %}selected{% endif %}>DRAFT</option>
+        <option>ARCHIVED</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="flex justify-end gap-sm" style="border-top:1px solid var(--border);padding-top:16px;margin-top:8px;">
+    <button class="btn btn-ghost btn-sm" onclick="showToast('Changes saved', 'success')">SAVE</button>
+    <button class="btn btn-danger btn-sm" onclick="confirmChallengeDelete('Delete {{ ch.title }}?')">DELETE</button>
+  </div>
+</div>
+{% endfor %}
+
+<div class="modal-backdrop" id="delete-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>DELETE CHALLENGE</h3>
+      <button class="btn btn-subtle btn-sm" onclick="closeDelete()">&times;</button>
+    </div>
+    <p id="delete-text" class="text-secondary" style="margin-bottom:20px;">Delete this challenge?</p>
+    <div class="flex justify-end gap-sm">
+      <button class="btn btn-ghost" onclick="closeDelete()">CANCEL</button>
+      <button class="btn btn-danger" onclick="closeDelete(); showToast('Challenge deleted', 'error')">DELETE</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmChallengeDelete(text) {
+  document.getElementById('delete-text').textContent = text;
+  document.getElementById('delete-modal').classList.add('active');
+}
+function closeDelete() {
+  document.getElementById('delete-modal').classList.remove('active');
+}
+</script>
+{% endblock %}

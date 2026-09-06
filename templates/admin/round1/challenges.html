@@ -1,0 +1,277 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 1 Challenges{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 1 &mdash; Cases &amp; Challenges</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Challenge categories shown on the Round 1 lab screen</div>
+  </div>
+  <button class="ap-btn" onclick="openForm()">+ NEW CHALLENGE</button>
+</div>
+
+<div class="ap-cards" style="margin-bottom:18px;">
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Challenges</span>
+    <span class="ap-stat-value accent">{{ challenges | length }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Active</span>
+    <span class="ap-stat-value success">{{ challenges | selectattr('active') | list | length }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Question variants</span>
+    <span class="ap-stat-value">{{ challenges | map(attribute='variants') | sum }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Assignments made</span>
+    <span class="ap-stat-value warning">{{ challenges | map(attribute='assigned') | sum }}</span>
+  </div>
+</div>
+
+<div class="ap-filterbar">
+  <input type="text" id="qSearch" placeholder="Search title, code, description ..." oninput="applyFilter()">
+  <select id="qDomain" onchange="applyFilter()">
+    <option value="">ALL DOMAINS</option>
+    {% for d in domains %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+  </select>
+  <select id="qDiff" onchange="applyFilter()">
+    <option value="">ALL DIFFICULTY</option>
+    <option value="EASY">EASY</option>
+    <option value="MEDIUM">MEDIUM</option>
+    <option value="HARD">HARD</option>
+  </select>
+  <select id="qStatus" onchange="applyFilter()">
+    <option value="">ALL STATUS</option>
+    <option value="active">ACTIVE</option>
+    <option value="hidden">HIDDEN</option>
+  </select>
+  <button class="ap-btn ghost sm" onclick="clearFilter()">RESET</button>
+</div>
+
+<div class="ap-challenge-grid" id="grid">
+  {% for c in challenges %}
+  <div class="ap-challenge {{ '' if c.active else 'muted' }}"
+       data-title="{{ c.title | lower }}"
+       data-code="{{ c.challenge_code | lower }}"
+       data-domain="{{ c.domain | lower }}"
+       data-diff="{{ c.difficulty | upper }}"
+       data-active="{{ 'active' if c.active else 'hidden' }}">
+    <div class="ap-challenge-head">
+      <div>
+        <div class="ap-challenge-title">{{ c.title }}</div>
+        <div class="ap-challenge-code">CHALLENGE CODE &middot; {{ c.challenge_code }}</div>
+      </div>
+      <div class="ap-row" style="gap:6px;justify-content:flex-end;">
+        {% if c.active %}
+        <span class="ap-status-pill" style="background:rgba(0,230,168,.1);color:var(--ap-success);">ACTIVE</span>
+        {% else %}
+        <span class="ap-status-pill" style="background:rgba(184,178,214,.12);color:var(--ap-muted);">HIDDEN</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="ap-row" style="gap:6px;">
+      <span class="ap-badge neutral">{{ c.domain }}</span>
+      {% set diff = c.difficulty | upper %}
+      <span class="ap-badge {{ 'ap-diff-easy' if diff == 'EASY' else ('ap-diff-hard' if diff == 'HARD' else 'ap-diff-medium') }}">{{ c.difficulty }}</span>
+      <span class="ap-challenge-code" style="margin:0 0 0 auto;">#{{ c.id }}</span>
+    </div>
+
+    <p class="ap-challenge-desc">{{ c.description or 'No description yet. Click EDIT to add one.' }}</p>
+
+    <div class="ap-challenge-stats">
+      <div class="ap-stat-box pts">
+        <div class="v">{{ c.points }}</div>
+        <div class="l">Points</div>
+      </div>
+      <div class="ap-stat-box qns">
+        <div class="v">{{ c.variants }}</div>
+        <div class="l">Variants</div>
+      </div>
+      <div class="ap-stat-box use">
+        <div class="v">{{ c.assigned }}</div>
+        <div class="l">Assigned</div>
+      </div>
+    </div>
+
+    <div class="ap-challenge-actions">
+      <button class="ap-btn sm ghost" title="Move up" onclick="move({{ c.id }}, 'up')">&#9650;</button>
+      <button class="ap-btn sm ghost" title="Move down" onclick="move({{ c.id }}, 'down')">&#9660;</button>
+      <a href="{{ url_for('admin_r1_preview', cid=c.id) }}" class="ap-btn sm ghost">PREVIEW</a>
+      <button class="ap-btn sm ghost" onclick="toggle({{ c.id }}, {{ 1 if c.active else 0 }})">{{ 'HIDE' if c.active else 'SHOW' }}</button>
+      <button class="ap-btn sm" onclick="edit({{ c.id }})">EDIT</button>
+      <button class="ap-btn sm danger" onclick="del({{ c.id }})">DELETE</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="noMatch" class="ap-empty" style="display:none;">No challenges match your filters.</div>
+
+{% if not challenges %}
+<div class="ap-empty">No challenges yet. Create the first one.</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var editing = null;
+
+  function openForm() {
+    editing = null;
+    document.getElementById('modalTitle').textContent = 'New Challenge';
+    document.getElementById('f_title').value = '';
+    document.getElementById('f_code').value = '';
+    document.getElementById('f_domain').value = 'WEB';
+    document.getElementById('f_difficulty').value = 'MEDIUM';
+    document.getElementById('f_points').value = '100';
+    document.getElementById('f_desc').value = '';
+    document.getElementById('f_question').value = '';
+    document.getElementById('f_answer').value = '';
+    document.getElementById('f_hint').value = '';
+    document.getElementById('f_status').checked = true;
+    document.getElementById('createOnly').style.display = '';
+    document.getElementById('codeNote').style.display = '';
+    document.getElementById('saveBtn').textContent = 'CREATE CHALLENGE';
+    document.getElementById('apModal').classList.add('open');
+  }
+
+  function edit(id) {
+    editing = id;
+    document.getElementById('modalTitle').textContent = 'Edit Challenge #' + id;
+    document.getElementById('createOnly').style.display = 'none';
+    document.getElementById('codeNote').style.display = 'none';
+    document.getElementById('saveBtn').textContent = 'SAVE CHANGES';
+    fetch('/admin/round1/api/challenge/' + id).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Could not load challenge.', true); return; }
+        var c = d.item;
+        document.getElementById('f_title').value = c.title || '';
+        document.getElementById('f_code').value = c.challenge_code || '';
+        document.getElementById('f_domain').value = c.domain || 'WEB';
+        document.getElementById('f_difficulty').value = c.difficulty || 'MEDIUM';
+        document.getElementById('f_points').value = c.points || 100;
+        document.getElementById('f_desc').value = c.description || '';
+        document.getElementById('f_status').checked = !!c.active;
+        document.getElementById('apModal').classList.add('open');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+
+  function save() {
+    var payload = {
+      title: document.getElementById('f_title').value.trim(),
+      challenge_code: document.getElementById('f_code').value.trim(),
+      domain: document.getElementById('f_domain').value,
+      difficulty: document.getElementById('f_difficulty').value,
+      points: parseInt(document.getElementById('f_points').value || '100', 10),
+      description: document.getElementById('f_desc').value.trim(),
+      active: document.getElementById('f_status').checked ? 1 : 0,
+      question: document.getElementById('f_question').value.trim(),
+      expected_answer: document.getElementById('f_answer').value.trim(),
+      hint: document.getElementById('f_hint').value.trim()
+    };
+    if (editing) { payload.challenge_id = editing; delete payload.question; delete payload.expected_answer; delete payload.hint; }
+    if (!payload.title) { apToast('Title is required.', true); return; }
+    ApOpenForm('/admin/round1/challenges/save', payload);
+  }
+
+  function toggle(id, currentlyActive) {
+    ApOpenForm('/admin/round1/challenges/' + id + '/status', { active: currentlyActive ? 0 : 1 });
+  }
+  function del(id) {
+    if (!confirm('Delete/archive this challenge?')) return;
+    ApOpenForm('/admin/round1/challenges/' + id + '/delete', {});
+  }
+  function move(id, dir) { ApOpenForm('/admin/round1/challenges/' + id + '/reorder/' + dir, {}); }
+
+  function applyFilter() {
+    var q = document.getElementById('qSearch').value.toLowerCase().trim();
+    var dom = document.getElementById('qDomain').value.toLowerCase();
+    var dif = document.getElementById('qDiff').value.toUpperCase();
+    var st = document.getElementById('qStatus').value;
+    var shown = 0;
+    document.querySelectorAll('#grid .ap-challenge').forEach(function (card) {
+      var hit = (!q || card.dataset.title.indexOf(q) > -1 || card.dataset.code.indexOf(q) > -1) &&
+                (!dom || card.dataset.domain === dom) &&
+                (!dif || card.dataset.diff === dif) &&
+                (!st || card.dataset.active === st);
+      card.style.display = hit ? '' : 'none';
+      if (hit) shown++;
+    });
+    document.getElementById('noMatch').style.display = shown ? 'none' : '';
+  }
+
+  function clearFilter() {
+    document.getElementById('qSearch').value = '';
+    document.getElementById('qDomain').value = '';
+    document.getElementById('qDiff').value = '';
+    document.getElementById('qStatus').value = '';
+    applyFilter();
+  }
+</script>
+{% endblock %}
+
+{% block modal %}
+<div class="ap-modal-head">
+  <h3 id="modalTitle">Challenge</h3>
+  <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+</div>
+<div class="ap-form-grid">
+  <div class="ap-field">
+    <label>Title</label>
+    <input id="f_title" placeholder="e.g. SQL Injection Basics">
+  </div>
+  <div class="ap-field">
+    <label>Challenge code</label>
+    <input id="f_code" placeholder="e.g. SQLI-BASICS">
+  </div>
+  <div class="ap-field">
+    <label>Domain</label>
+    <select id="f_domain">{% for d in domains %}<option value="{{ d }}">{{ d }}</option>{% endfor %}</select>
+  </div>
+  <div class="ap-field">
+    <label>Difficulty</label>
+    <select id="f_difficulty">
+      <option value="EASY">EASY</option>
+      <option selected>MEDIUM</option>
+      <option value="HARD">HARD</option>
+    </select>
+  </div>
+  <div class="ap-field">
+    <label>Points</label>
+    <input id="f_points" type="number" value="100">
+  </div>
+  <div class="ap-field" style="align-items:flex-end;">
+    <label class="ap-check">
+      <input id="f_status" type="checkbox" checked>
+      Active (visible to participants)
+    </label>
+  </div>
+  <div class="ap-field" style="grid-column:1 / -1;">
+    <label>Description</label>
+    <textarea id="f_desc" placeholder="Short summary shown on the challenge page."></textarea>
+  </div>
+
+  <div id="createOnly" style="grid-column:1 / -1;">
+    <div id="codeNote" style="display:none;"></div>
+    <div class="ap-field">
+      <label>First question (created together with the challenge)</label>
+      <textarea id="f_question"></textarea>
+    </div>
+    <div class="ap-field">
+      <label>Expected answer</label>
+      <input id="f_answer">
+    </div>
+    <div class="ap-field">
+      <label>Hint</label>
+      <input id="f_hint">
+    </div>
+  </div>
+</div>
+<div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+  <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+  <button class="ap-btn" id="saveBtn" onclick="save()">CREATE CHALLENGE</button>
+</div>
+{% endblock %}

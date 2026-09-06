@@ -1,0 +1,4 @@
+emp_id: E-1042
+name: David Mehta
+role: Pricing Dept Head
+dept: pricing

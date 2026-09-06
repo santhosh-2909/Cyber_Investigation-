@@ -1,0 +1,62 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 1 Scoring{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 1 &mdash; Scoring</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Point values per challenge category</div>
+  </div>
+  <span class="ap-status-pill" style="background:rgba(108,43,255,0.12);color:var(--ap-accent4);">MODE: {{ r1.scoring_mode }}</span>
+</div>
+
+<div class="ap-cards">
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Challenges</span>
+    <span class="ap-stat-value">{{ challenges | length }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Max attempts</span>
+    <span class="ap-stat-value accent">{{ r1.max_attempts }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Session timer</span>
+    <span class="ap-stat-value warning">{{ r1.timer_minutes }} min</span>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Point Configuration</h3></div>
+  {% if challenges %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Challenge</th><th>Domain</th><th>Variants</th><th>Points</th><th>Save</th></tr>
+      {% for c in challenges %}
+      <tr>
+        <td class="cell-strong">{{ c.title }}</td>
+        <td><span class="ap-badge neutral">{{ c.domain }}</span></td>
+        <td>{{ c.variants }}</td>
+        <td>
+          <input class="cpoints" data-id="{{ c.id }}" type="number" value="{{ c.points }}" style="width:90px;background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:7px 9px;">
+        </td>
+        <td><button class="ap-btn sm ghost" onclick="savePoints({{ c.id }})">SAVE</button></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No challenges yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function savePoints(id) {
+    var input = document.querySelector('.cpoints[data-id="' + id + '"]');
+    var points = parseInt(input.value || '100', 10);
+    ApOpenForm('/admin/round1/challenges/save', { challenge_id: id, points: points });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "admin_base.html" %}
+{% block title %}Content Manager - Round 2 - Admin{% endblock %}
+{% block content %}
+<div class="mb-xl animate-slide-up">
+  <h1 style="font-size:2rem;">ROUND 2 CASE EDITOR</h1>
+  <p class="text-secondary" style="margin-top:4px;">Create and manage forensic investigation cases, stations, and person roles.</p>
+</div>
+
+{% for c in cases %}
+<div class="card mb-xl animate-slide-up stagger-{{ (loop.index0 % 5) + 1 }}">
+  <div class="card-header">
+    <div class="flex items-center gap-md">
+      <span class="font-overline text-accent">CASE {{ '0' ~ loop.index }}</span>
+      <strong style="color:var(--text-primary);">{{ c.title }}</strong>
+      <span class="badge badge-warning badge-dot">{{ 'PUBLISHED' if c.published else 'DRAFT' }}</span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">CASE NUMBER</label>
+    <input type="text" class="form-input form-input-mono" value="CASE-{{ '0' ~ loop.index }}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">CASE TITLE</label>
+    <input type="text" class="form-input" value="{{ c.title }}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">INCIDENT SUMMARY</label>
+    <textarea class="form-textarea" rows="2">{{ c.incident }}</textarea>
+  </div>
+  <div class="form-group">
+    <label class="form-label">NARRATIVE</label>
+    <textarea class="form-textarea" rows="3">{{ c.narrative }}</textarea>
+  </div>
+
+  <!-- Station editor -->
+  <div class="admin-section-title mt-xl">STATION EDITOR (S1 - S5)</div>
+  {% for s in c.stations %}
+  <div class="card-section">
+    <div class="form-grid-2 mb-sm">
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">STATION {{ s.id }}</label>
+        <input type="text" class="form-input" value="{{ s.name }}">
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">DOMAIN</label>
+        <input type="text" class="form-input" value="{{ s.domain }}">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:8px;">
+      <label class="form-label">EVIDENCE DESCRIPTION</label>
+      <input type="text" class="form-input" value="{{ s.desc }}">
+    </div>
+    <div class="form-grid-2 mb-sm">
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">ARTIFACT</label>
+        <input type="text" class="form-input form-input-mono" value="{{ s.evidence }}">
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">TASK</label>
+        <input type="text" class="form-input" value="{{ s.question }}">
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">CORRECT ANSWER</label>
+        <input type="text" class="form-input form-input-mono" value="{{ s.flag }}">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">HINT</label>
+        <input type="text" class="form-input" value="{{ s.hint }}">
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Person role editor -->
+  <div class="admin-section-title mt-xl">PERSON ROLE EDITOR</div>
+  {% for p in c.persons %}
+  <div class="card-section">
+    <div class="flex items-center justify-between gap-sm" style="flex-wrap:wrap;">
+      <div class="flex items-center gap-sm">
+        <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--warning-bg);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <strong style="color:var(--text-primary);">{{ p.role }}</strong>
+      </div>
+      <span class="badge {% if p.required %}badge-accent{% else %}badge-neutral{% endif %}">
+        {{ 'REQUIRED' if p.required else 'OPTIONAL' }}
+      </span>
+    </div>
+    <div class="form-grid-2" style="margin-top:12px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">CORRECT ANSWER(S)</label>
+        <input type="text" class="form-input form-input-mono" value="{{ p.answer_text }}">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">CLUE</label>
+        <input type="text" class="form-input" value="{{ p.clue }}">
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="flex justify-end gap-sm" style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px;">
+    <button class="btn btn-ghost btn-sm" onclick="showToast('Case changes saved', 'success')">SAVE CASE</button>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

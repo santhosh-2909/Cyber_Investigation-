@@ -1,0 +1,98 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin Overview{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Control Center Overview</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Live reads from the competition database</div>
+  </div>
+  <div class="ap-row">
+    <span class="ap-status-pill" style="background:rgba(0,230,168,0.1);color:var(--ap-success);">● {{ status.live_logins }} ONLINE</span>
+    <span class="ap-status-pill" style="background:rgba(255,176,32,0.1);color:var(--ap-warning);">{{ status.total_logins }} ACTIVE LOGINS</span>
+  </div>
+</div>
+
+<div class="ap-cards">
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Teams</span>
+    <span class="ap-stat-value">{{ status.teams }}</span>
+    <span class="ap-muted" style="font-size:11px;">{{ status.enabled }} enabled</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Round 1 Teams</span>
+    <span class="ap-stat-value accent">{{ status.r1_teams }}</span>
+    <span class="ap-muted" style="font-size:11px;">{{ status.r1_sessions }} sessions created</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Round 2 Teams</span>
+    <span class="ap-stat-value accent">{{ status.r2_teams }}</span>
+    <span class="ap-muted" style="font-size:11px;">{{ status.round2_logins }} active logins</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Round 1 Solved</span>
+    <span class="ap-stat-value success">{{ status.r1_completed }}</span>
+    <span class="ap-muted" style="font-size:11px;">{{ status.r1_active }} in progress</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Submissions (R1)</span>
+    <span class="ap-stat-value">{{ status.submissions }}</span>
+    <span class="ap-success" style="font-size:11px;">{{ status.correct_submissions }} correct</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">R2 Content</span>
+    <span class="ap-stat-value warning">{{ status.round2.published_cases }}/{{ status.round2.cases }}</span>
+    <span class="ap-muted" style="font-size:11px;">{{ status.round2.stations }} tasks published</span>
+  </div>
+</div>
+
+<div class="ap-grid-2" style="margin-top:18px;">
+  <div>
+    <div class="ap-panel" style="margin-top:0;">
+      <div class="ap-panel-head"><h3 class="ap-panel-title">Round Status</h3></div>
+      <div class="ap-table-wrap">
+      <table class="ap-table">
+        <tr><th>Round</th><th>Status</th><th>Access</th><th>Attempts</th><th>Timer</th></tr>
+        <tr>
+          <td class="cell-strong">Round 1 &mdash; MIXED FUNDAMENTALS</td>
+          <td><span class="ap-badge {{ 'success' if r1.status == 'ACTIVE' else ('warning' if r1.status == 'PAUSED' else 'neutral') }}">{{ r1.status }}</span></td>
+          <td>{{ 'ENABLED' if r1.access_enabled else 'DISABLED' }}</td>
+          <td>{{ r1.max_attempts }}</td>
+          <td>{{ r1.timer_minutes }} min</td>
+        </tr>
+        <tr>
+          <td class="cell-strong">Round 2 &mdash; DIGITAL FORENSICS</td>
+          <td><span class="ap-badge {{ 'success' if r2.status == 'ACTIVE' else ('warning' if r2.status == 'PAUSED' else 'neutral') }}">{{ r2.status }}</span></td>
+          <td>{{ 'ENABLED' if r2.access_enabled else 'DISABLED' }}</td>
+          <td>{{ r2.max_attempts }}</td>
+          <td>{{ r2.timer_minutes }} min</td>
+        </tr>
+      </table>
+      </div>
+      <div class="ap-row ap-mt">
+        <a href="{{ url_for('admin_monitoring') }}" class="ap-btn sm ghost">LIVE MONITORING</a>
+        <a href="{{ url_for('admin_r1_settings') }}" class="ap-btn sm ghost">ROUND 1 SETTINGS</a>
+        <a href="{{ url_for('admin_r2_settings') }}" class="ap-btn sm ghost">ROUND 2 SETTINGS</a>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="ap-panel" style="margin-top:0;">
+      <div class="ap-panel-head"><h3 class="ap-panel-title">Recent Activity</h3></div>
+      {% if activity %}
+      <div>
+        {% for a in activity %}
+        <div class="ap-between" style="margin-bottom:10px;gap:8px;">
+          <span style="font-size:12px;color:var(--ap-muted);">{{ a.text }}</span>
+          <span class="ap-mono ap-muted" style="font-size:10px;white-space:nowrap;">{{ a.time | ts }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="ap-empty">No activity recorded yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Investigation Results — {{ case.code }}{% endblock %}
+{% block content %}
+<div class="fs-shell">
+  <!-- Verdict -->
+  <div class="verdict" style="margin-bottom:14px;">
+    <div class="verdict-ring">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div style="flex:1;">
+      <h2>CASE {{ case.code }} — INVESTIGATION COMPLETE</h2>
+      <p>Team {{ team.name }} &middot; {{ case.title }}</p>
+    </div>
+    <div style="text-align:right;">
+      <div class="score-display score-large" style="color:var(--success);">{{ total }}<span style="font-size:1.5rem;color:var(--text-muted);"> / {{ grand_max }}</span></div>
+      <div class="fs-overline">TOTAL POINTS</div>
+    </div>
+  </div>
+
+  <!-- Breakdown -->
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+    <div class="fs-overline" style="margin-bottom:14px;"><strong>SCORE BREAKDOWN</strong> — DETAILED SCORING</div>
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr><th>CATEGORY</th><th style="text-align:right;">POINTS</th><th style="text-align:right;width:140px;">PROGRESS</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="flex items-center gap-md">
+                <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--accent-glow);display:flex;align-items:center;justify-content:center;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div>
+                  <strong style="color:var(--text-primary);">Evidence Stations</strong>
+                  <div class="text-muted" style="font-size:.75rem;">{{ case.stations|length }} stations x 100 pts</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-right"><span class="font-mono" style="font-weight:700;color:var(--text-primary);">{{ station_points }} / {{ station_max }}</span></td>
+            <td class="text-right"><div class="progress" style="width:100px;display:inline-block;"><div class="progress-fill {% if station_points == station_max %}success{% endif %}" style="width:{% if station_max > 0 %}{{ (station_points / station_max * 100)|int }}{% else %}0{% endif %}%;"></div></div></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="flex items-center gap-md">
+                <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--warning-bg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div>
+                  <strong style="color:var(--text-primary);">Person Identification</strong>
+                  <div class="text-muted" style="font-size:.75rem;">{{ case.persons|length }} persons x 75 pts</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-right"><span class="font-mono" style="font-weight:700;color:var(--text-primary);">{{ person_points }} / {{ person_max }}</span></td>
+            <td class="text-right"><div class="progress" style="width:100px;display:inline-block;"><div class="progress-fill {% if person_max > 0 and person_points == person_max %}success{% endif %}" style="width:{% if person_max > 0 %}{{ (person_points / person_max * 100)|int }}{% else %}0{% endif %}%;"></div></div></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="flex items-center gap-md">
+                <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--success-bg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <div>
+                  <strong style="color:var(--text-primary);">Investigation Report</strong>
+                  <div class="text-muted" style="font-size:.75rem;">Entry + Timeline + Conclusion</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-right"><span class="font-mono" style="font-weight:700;color:var(--text-primary);">{{ report_points }} / 100</span></td>
+            <td class="text-right"><div class="progress" style="width:100px;display:inline-block;"><div class="progress-fill {% if report_points == 100 %}success{% endif %}" style="width:{{ report_points }}%;"></div></div></td>
+          </tr>
+          <tr style="background:var(--bg-elevated);">
+            <td><strong style="color:var(--text-primary);font-size:1rem;">TOTAL SCORE</strong></td>
+            <td class="text-right"><span class="font-mono" style="font-weight:800;font-size:1.125rem;color:var(--success);">{{ total }} / {{ grand_max }}</span></td>
+            <td class="text-right"><div class="progress" style="width:100px;display:inline-block;"><div class="progress-fill success" style="width:{% if grand_max > 0 %}{{ (total / grand_max * 100)|int }}{% else %}0{% endif %}%;"></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="text-center" style="margin-bottom:48px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">RETURN TO DASHBOARD</a>
+    <a href="{{ url_for('reset') }}" class="btn btn-ghost btn-lg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      RESTART INVESTIGATION
+    </a>
+  </div>
+</div>
+{% endblock %}

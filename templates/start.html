@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Team Login - Cyber Challenge 2026{% endblock %}
+{% block content %}
+<div class="login-wrapper">
+  <div class="login-bg">
+    <div class="hero-grid-lines"></div>
+  </div>
+
+  <a href="{{ url_for('landing') }}" class="btn btn-ghost btn-sm" style="position:absolute;top:24px;left:24px;z-index:2;">&larr; BACK TO MAIN PAGE</a>
+  <div class="login-card animate-scale-in">
+    <div class="text-center mb-xl">
+      <div class="login-brand-icon"><span>CD</span></div>
+      <h1 style="font-size:1.25rem;margin-top:16px;letter-spacing:0.1em;">CYBER CHALLENGE 2026</h1>
+      <p class="text-muted font-mono" style="font-size:0.6875rem;margin-top:4px;letter-spacing:0.06em;">ONE TEAM LOGIN · BOTH ROUNDS</p>
+    </div>
+
+    {% if error %}
+    <div class="login-error animate-slide-up">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="card" style="background:var(--accent-glow);border:none;padding:12px 16px;margin-bottom:20px;">
+      <div class="flex items-center gap-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M17.6 13.41c.04-.47.04-.94 0-1.41l1.7-1.33-1.7-2.94-2.02.65a7 7 0 0 0-2.4-1.4L13 3.59H9.02l-.18 2.16a7 7 0 0 0-2.4 1.4l-2.02-.65-1.7 2.94 1.7 1.33c-.05.47-.05.94 0 1.41l-1.7 1.33 1.7 2.94 2.02-.65a7 7 0 0 0 2.4 1.4l.18 2.16h3.96l.18-2.16a7 7 0 0 0 2.4-1.4l2.02.65 1.7-2.94-1.7-1.33z"/></svg>
+        <span class="text-secondary" style="font-size:0.85rem;">Team access is <strong>provisioned by the administrator</strong>. Use the Team Name and Team ID issued for your team — no public registration.</span>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('start') }}">
+      <div class="form-group">
+        <label class="form-label">TEAM NAME</label>
+        <input type="text" name="team_name" required placeholder="e.g. Cyber Ninjas" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">TEAM ID</label>
+        <input type="text" name="team_id" required placeholder="e.g. TEAM-01" class="form-input form-input-mono">
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full btn-lg" style="margin-top:8px;">
+        ENTER THE COMPETITION
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

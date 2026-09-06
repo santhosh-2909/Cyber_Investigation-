@@ -1,0 +1,39 @@
+{% extends "admin_base.html" %}
+{% block title %}Report Reviews{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Report Reviews</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Teams currently on a Round 2 case, ready for report review</div>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Active Round 2 Investigations ({{ reports | length }})</h3></div>
+  {% if reports %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Team</th><th>Case</th><th>Case status</th></tr>
+      {% for r in reports %}
+      <tr>
+        <td class="cell-strong">{{ r.team_name }}</td>
+        <td>
+          {{ r.case_title or r.case_code or '—' }}
+          <div class="ap-mono ap-muted" style="font-size:10px;">{{ r.case_code }}</div>
+        </td>
+        <td>
+          {% if r.case_status == 'PUBLISHED' %}<span class="ap-badge success">PUBLISHED</span>
+          {% elif r.case_status %}<span class="ap-badge warning">{{ r.case_status }}</span>
+          {% else %}<span class="ap-badge muted">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No teams are mid-investigation right now.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

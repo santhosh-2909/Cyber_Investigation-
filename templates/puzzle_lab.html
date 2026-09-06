@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Round 1 - Cyber Puzzle Lab{% endblock %}
+{% block content %}
+<div class="layout-investigation">
+  <div class="layout-main" style="padding:32px;max-width:100%;">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-xl flex-wrap" style="gap:16px;">
+      <div class="animate-slide-up">
+        <span class="font-overline text-accent">ROUND 01</span>
+        <h1 style="font-size:2.25rem;margin-top:8px;">CYBER PUZZLE LAB</h1>
+        <p class="text-secondary" style="margin-top:4px;">Solve technical challenges to earn points before Round 2.</p>
+      </div>
+      <div class="text-right animate-slide-up">
+        <div class="font-overline text-muted mb-xs">PROGRESS</div>
+        <div class="flex items-center gap-md">
+          <span class="font-mono text-primary" style="font-size:1.25rem;font-weight:700;">{{ solved_count }} / {{ challenges|length }}</span>
+          <div class="progress" style="width:120px;">
+            <div class="progress-fill success" style="width:{{ (solved_count / challenges|length * 100)|int }}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="flex items-center gap-sm mb-xl flex-wrap animate-slide-up">
+      <button class="btn btn-ghost btn-sm active-filter" data-filter="ALL">ALL</button>
+      {% for d in domains %}
+      <button class="btn btn-ghost btn-sm filter-chip" data-filter="{{ d }}">{{ d }}</button>
+      {% endfor %}
+    </div>
+
+    <!-- Challenge Grid -->
+    <div class="grid" style="grid-template-columns:repeat(3, 1fr);gap:16px;" id="challenge-grid">
+      {% for ch in challenges %}
+      <div class="challenge-card animate-slide-up stagger-{{ (loop.index0 % 5) + 1 }}" data-domain="{{ ch.domain }}">
+        <div class="challenge-card-top">
+          <span class="font-mono text-dim" style="font-size:0.75rem;">{{ '%02d' % loop.index }}</span>
+          <span class="badge {% if ch.solved %}badge-success badge-dot{% else %}badge-neutral{% endif %}">
+            {{ 'SOLVED' if ch.solved else 'UNSOLVED' }}
+          </span>
+        </div>
+        <h3 style="font-size:1.125rem;margin-top:12px;">{{ ch.title }}</h3>
+        <div class="text-muted font-mono" style="font-size:0.6875rem;margin-top:6px;letter-spacing:0.08em;">{{ ch.domain }} · {{ ch.difficulty }}</div>
+        <p class="text-muted" style="font-size:0.8125rem;margin-top:12px;line-height:1.6;">{{ ch.task }}</p>
+        <div class="challenge-card-footer">
+          <span class="font-mono text-accent" style="font-weight:700;">{{ ch.points }} PTS</span>
+          <a href="{{ url_for('challenge', cid=loop.index0) }}" class="btn btn-ghost btn-sm">
+            SOLVE
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+<style>
+.challenge-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+.challenge-card:hover { border-color: var(--accent-border); box-shadow: var(--shadow-glow); transform: translateY(-2px); }
+.challenge-card-top { display: flex; align-items: center; justify-content: space-between; }
+.challenge-card-footer {
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.active-filter { background: var(--accent-glow); color: var(--accent); border-color: var(--accent-border); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filtering
+document.querySelectorAll('.filter-chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    document.querySelector('.active-filter').classList.remove('active-filter');
+    this.classList.add('active-filter');
+    const filter = this.dataset.filter;
+    document.querySelectorAll('.challenge-card').forEach(function(card) {
+      if (filter === 'ALL' || card.dataset.domain === filter) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

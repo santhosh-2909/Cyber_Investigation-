@@ -1,0 +1,145 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Evidence{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 &mdash; Evidence</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Case evidence &mdash; files served to participants</div>
+  </div>
+  <select onchange="location.href='/admin/round2/evidence?case=' + this.value" style="background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:8px 10px;">
+    <option value="">SELECT CASE</option>
+    {% for c in cases %}
+    <option value="{{ c.id }}" {% if selected and selected|int == c.id %}selected{% endif %}>{{ c.title }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+{% if selected %}
+<div class="ap-panel">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Evidence ({{ evidence | length }})</h3>
+    <button class="ap-btn" onclick="openForm()">ADD EVIDENCE</button>
+  </div>
+
+  <div class="ap-panel ap-upload" style="margin:0 0 18px;">
+    <div class="ap-panel-head"><h3 class="ap-panel-title">Upload File</h3></div>
+    <form id="upForm" class="ap-form-grid" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end;" method="post" enctype="multipart/form-data">
+      <div class="ap-field">
+        <label>File (saved to evidence/)</label>
+        <input type="file" name="file" required style="border:1px dashed rgba(181,108,255,.4);padding:8px;border-radius:8px;">
+      </div>
+      <div class="ap-field"><label>Display name</label><input type="text" name="name" placeholder="optional"></div>
+      <div class="ap-field"><label>Evidence code</label><input type="text" name="evidence_code" placeholder="E1"></div>
+      <button type="button" class="ap-btn" onclick="upload()">UPLOAD</button>
+    </form>
+  </div>
+
+  {% if evidence %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Evidence</th><th>Code</th><th>Type</th><th>File</th><th>Actions</th></tr>
+      {% for e in evidence %}
+      <tr>
+        <td class="cell-strong">{{ e.name }}</td>
+        <td class="ap-mono">{{ e.evidence_code or '—' }}</td>
+        <td><span class="ap-badge neutral">{{ e.evidence_type }}</span></td>
+        <td class="ap-mono" style="max-width:220px;">{{ e.filename or '—' }}{% if e.file_size %} <span class="ap-muted" style="font-size:10px;">({{ (e.file_size / 1024) | round(0) | int }} KB)</span>{% endif %}</td>
+        <td>
+          <div class="ap-row" style="gap:6px;">
+            {% if e.filename %}<a href="{{ url_for('download_evidence', filename=e.filename) }}" class="ap-btn sm ghost">LINK</a>{% endif %}
+            <button class="ap-btn sm ghost" onclick="edit({{ e.id }})">EDIT</button>
+            <button class="ap-btn sm danger" onclick="del({{ e.id }})">DELETE</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No evidence for this case.</div>
+  {% endif %}
+</div>
+{% else %}
+<div class="ap-empty">Choose a case to manage its evidence.</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var editing = null;
+  function openForm() {
+    editing = null;
+    ['e3_name','e3_code','e3_desc','e3_file'].forEach(function (id) { document.getElementById(id).value = ''; });
+    document.getElementById('e3_type').value = 'OTHER';
+    ApShowPanel('panel_e');
+  }
+  function edit(id) {
+    editing = id;
+    fetch('/admin/round2/api/evidence/' + id).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Not found', true); return; }
+        var e = d.item;
+        document.getElementById('e3_name').value = e.name || '';
+        document.getElementById('e3_code').value = e.evidence_code || '';
+        document.getElementById('e3_desc').value = e.description || '';
+        document.getElementById('e3_file').value = e.filename || '';
+        document.getElementById('e3_type').value = e.evidence_type || 'OTHER';
+        document.getElementById('e3_modalTitle').textContent = 'Edit Evidence #' + id;
+        ApShowPanel('panel_e');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+  function save() {
+    var payload = {
+      case_id: {{ selected }},
+      name: document.getElementById('e3_name').value.trim(),
+      evidence_code: document.getElementById('e3_code').value.trim(),
+      description: document.getElementById('e3_desc').value.trim(),
+      filename: document.getElementById('e3_file').value.trim(),
+      evidence_type: document.getElementById('e3_type').value
+    };
+    if (editing) payload.evidence_id = editing;
+    if (!payload.name) { apToast('Evidence name is required.', true); return; }
+    ApOpenForm('/admin/round2/evidence/save', payload);
+  }
+  function del(id) {
+    if (!confirm('Delete this evidence item?')) return;
+    ApOpenForm('/admin/round2/evidence/' + id + '/delete', {});
+  }
+  function upload() {
+    var fd = new FormData(document.getElementById('upForm'));
+    fd.set('case_id', '{{ selected }}');
+    document.querySelector('.ap-btn').disabled = true;
+    fetch('/admin/round2/evidence/upload', { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        document.querySelector('.ap-btn').disabled = false;
+        if (d.ok) { apToast('Uploaded: ' + d.filename); setTimeout(function () { location.reload(); }, 400); }
+        else apToast(d.error || 'Upload failed', true);
+      }).catch(function () { document.querySelector('.ap-btn').disabled = false; apToast('Upload failed.', true); });
+  }
+</script>
+{% endblock %}
+
+{% block modal %}
+<div class="ap-modal-panel" id="panel_e">
+    <div class="ap-modal-head">
+      <h3 id="e3_modalTitle">Evidence Item</h3>
+      <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+    </div>
+    <div class="ap-form-grid">
+      <div class="ap-field"><label>Name</label><input id="e3_name"></div>
+      <div class="ap-field"><label>Evidence code</label><input id="e3_code"></div>
+      <div class="ap-field"><label>Type</label>
+        <select id="e3_type">{% for t in evidence_types %}<option>{{ t }}</option>{% endfor %}</select>
+      </div>
+      <div class="ap-field"><label>Filename</label><input id="e3_file"></div>
+      <div class="ap-field" style="grid-column:1 / -1;"><label>Description</label><textarea id="e3_desc"></textarea></div>
+    </div>
+    <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+      <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+      <button class="ap-btn" onclick="save()">SAVE</button>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Live Scoreboard{% endblock %}
+{% block content %}
+<div class="layout-investigation">
+  <div class="layout-main" style="padding:32px;max-width:100%;">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-xl flex-wrap" style="gap:16px;">
+      <div class="animate-slide-up">
+        <h1 style="font-size:2.25rem;">LIVE SCOREBOARD</h1>
+        <div class="flex items-center gap-sm mt-sm">
+          <span class="status-dot active"></span>
+          <span class="badge badge-success">EVENT LIVE</span>
+        </div>
+      </div>
+      <div class="text-right animate-slide-up">
+        <div class="font-overline text-muted mb-xs">YOUR RANK</div>
+        <div class="score-display score-medium text-accent">#02</div>
+      </div>
+    </div>
+
+    <!-- Podium -->
+    <div class="podium animate-slide-up">
+      <div class="podium-2">
+        <div class="podium-medal">
+          <span class="font-mono" style="font-weight:800;font-size:1.5rem;color:var(--text-secondary);">02</span>
+        </div>
+        <div class="podium-name" style="color:var(--text-secondary);">TEAM CYBER</div>
+        <div class="font-mono text-secondary" style="font-size:0.875rem;margin-top:4px;">1,720 PTS</div>
+        <div class="podium-bar" style="height:80px;background:var(--bg-secondary);"></div>
+      </div>
+
+      <div class="podium-1">
+        <div class="podium-medal crown">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M2 5l6 3 4-6 4 6 6-3-2 13H4L2 5z"/></svg>
+        </div>
+        <div class="podium-name text-primary">TEAM ALPHA</div>
+        <div class="font-mono text-accent" style="font-size:1.25rem;font-weight:700;margin-top:4px;">1,840 PTS</div>
+        <div class="podium-bar" style="height:120px;background:var(--accent-glow);border:1px solid var(--accent-border);"></div>
+      </div>
+
+      <div class="podium-3">
+        <div class="podium-medal">
+          <span class="font-mono" style="font-weight:800;font-size:1.5rem;color:var(--text-secondary);">03</span>
+        </div>
+        <div class="podium-name" style="color:var(--text-secondary);">TEAM PHANTOM</div>
+        <div class="font-mono text-secondary" style="font-size:0.875rem;margin-top:4px;">1,590 PTS</div>
+        <div class="podium-bar" style="height:60px;background:var(--bg-secondary);"></div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="card mb-xl animate-slide-up stagger-1">
+      <div class="card-header">
+        <h3>COMPETITION RANKING</h3>
+        <span class="font-mono text-muted" style="font-size:0.6875rem;">UPDATED LIVE</span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>RANK</th>
+              <th>TEAM</th>
+              <th style="text-align:right;">ROUND 01</th>
+              <th style="text-align:right;">ROUND 02</th>
+              <th style="text-align:right;">TOTAL</th>
+              <th style="text-align:right;">STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in leaderboard %}
+            <tr class="{% if t.name == team.name %}team-row{% endif %}">
+              <td>
+                <span class="font-mono {% if loop.index == 1 %}text-warning{% elif loop.index == 2 %}text-secondary{% elif loop.index == 3 %}text-accent{% else %}text-dim{% endif %}" style="font-weight:800;">
+                  {{ '%02d' % loop.index }}
+                </span>
+              </td>
+              <td>
+                <div class="flex items-center gap-sm">
+                  {% if t.name == team.name %}<span class="status-dot active"></span>{% endif %}
+                  <strong style="color:var(--text-primary);">{{ t.name }}</strong>
+                  {% if t.name == team.name %}<span class="badge badge-accent" style="font-size:0.5625rem;">YOU</span>{% endif %}
+                </div>
+              </td>
+              <td class="text-right font-mono">{{ t.round1 }}</td>
+              <td class="text-right font-mono">{{ t.round2 }}</td>
+              <td class="text-right"><span class="font-mono font-weight-bold" style="font-weight:700;color:var(--text-primary);">{{ t.total }}</span></td>
+              <td class="text-right">
+                <span class="badge {% if t.active %}badge-success baby-dot{% else %}badge-neutral{% endif %}">
+                  {{ 'ACTIVE' if t.active else 'IDLE' }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Last Solves -->
+    <div class="card animate-slide-up stagger-2">
+      <div class="card-header">
+        <h3>LAST SOLVES</h3>
+      </div>
+      <div class="grid" style="gap:10px;">
+        {% for s in last_solves %}
+        <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:0;">
+          <div class="flex items-center gap-md">
+            <span class="badge {% if s.team == team.name %}badge-accent{% else %}badge-neutral{% endif %}">{{ s.team }}</span>
+            <span class="text-secondary" style="font-size:0.875rem;">{{ s.station }}</span>
+          </div>
+          <div class="flex items-center gap-sm">
+            <span class="badge badge-success">+{{ s.points }}</span>
+            <span class="text-muted font-mono" style="font-size:0.6875rem;">{{ s.time }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px 16px 16px;
+  margin-bottom: 24px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.podium > div { text-align: center; width: 160px; }
+.podium-medal {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px;
+  background: var(--bg-secondary); border: 2px solid var(--border-strong);
+}
+.podium-medal.crown { background: var(--warning-bg); border-color: var(--warning); }
+.podium-name { font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.06em; }
+.podium-bar { width: 100%; border-radius: var(--radius-sm) var(--radius-sm) 0 0; margin-top: 16px; }
+.team-row td { background: rgba(139, 92, 246, 0.04); }
+</style>
+{% endblock %}

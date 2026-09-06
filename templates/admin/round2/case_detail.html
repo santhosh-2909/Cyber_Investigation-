@@ -1,0 +1,404 @@
+{% extends "admin_base.html" %}
+{% block title %}Case Detail{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">{{ case.title }}</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">{{ case.case_code }} &middot; {{ case.company }} &middot; {{ case.difficulty }} &middot; {{ case.points }} pts</div>
+  </div>
+  <div class="ap-row">
+    <button class="ap-btn sm" onclick="openEditCase()">EDIT CASE</button>
+    <a href="{{ url_for('admin_r2_case_preview', cid=case.id) }}" class="ap-btn ghost sm">PARTICIPANT PREVIEW</a>
+    <a href="{{ url_for('admin_r2_cases') }}" class="ap-btn ghost sm">ALL CASES</a>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Case Brief</h3>
+    <span class="ap-badge {{ 'success' if case.status == 'PUBLISHED' else ('warning' if case.status == 'DRAFT' else 'muted') }}">{{ case.status }}</span>
+  </div>
+  <p class="ap-muted" style="margin:0 0 6px;">{{ case.case_brief or 'No brief.' }}</p>
+  <div class="ap-form-grid ap-mt">
+    <div class="ap-field">
+      <label>Objective</label>
+      <div class="ap-muted">{{ case.objective or '—' }}</div>
+    </div>
+    <div class="ap-field">
+      <label>Time limit</label>
+      <div class="ap-muted">{{ case.time_limit }} minutes</div>
+    </div>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Investigation Tasks ({{ stations | length }})</h3>
+    <button class="ap-btn sm" onclick="openStation()">NEW TASK</button>
+  </div>
+  {% if stations %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th></th><th>Task</th><th>Domain</th><th>Question</th><th>Points</th><th>Status</th><th>Actions</th></tr>
+      {% for s in stations %}
+      <tr>
+        <td>
+          <div class="ap-row" style="gap:2px;">
+            <button class="ap-btn sm ghost" onclick="moveStation({{ s.id }}, 'up')">&#9650;</button>
+            <button class="ap-btn sm ghost" onclick="moveStation({{ s.id }}, 'down')">&#9660;</button>
+          </div>
+        </td>
+        <td class="cell-strong">{{ s.name }}<div class="ap-mono ap-muted" style="font-size:10px;">{{ s.station_id }}</div></td>
+        <td><span class="ap-badge neutral">{{ s.domain or '—' }}</span></td>
+        <td style="max-width:300px;">{{ s.question }}</td>
+        <td>{{ s.points }}</td>
+        <td>
+          <span class="ap-badge {{ 'success' if s.status == 'PUBLISHED' else ('warning' if s.status == 'DRAFT' else 'muted') }}">{{ s.status }}</span>
+          <button class="ap-btn sm ghost" onclick="setStationStatus({{ s.id }}, '{{ 'ARCHIVED' if s.status == 'PUBLISHED' else 'PUBLISHED' }}')">{{ 'ARCHIVE' if s.status == 'PUBLISHED' else 'PUBLISH' }}</button>
+        </td>
+        <td>
+          <div class="ap-row" style="gap:6px;">
+            <button class="ap-btn sm ghost" onclick="editStation({{ s.id }})">EDIT</button>
+            <button class="ap-btn sm danger" onclick="delStation({{ s.id }})">DELETE</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No tasks yet.</div>
+  {% endif %}
+</div>
+
+<div class="ap-grid-2" style="margin-top:18px;">
+  <div class="ap-panel" style="margin-top:0;min-width:0;">
+    <div class="ap-panel-head">
+      <h3 class="ap-panel-title">Report Persons ({{ persons | length }})</h3>
+      <button class="ap-btn sm" onclick="openPerson()">ADD PERSON</button>
+    </div>
+    {% if persons %}
+    {% for p in persons %}
+    <div class="ap-between" style="padding:10px 0;border-bottom:1px solid rgba(108,43,255,.08);">
+      <div style="min-width:0;">
+        <div class="cell-strong">{{ p.role }}</div>
+        <div class="ap-mono ap-muted" style="font-size:10px;">{{ p.person_key }}</div>
+        <div class="ap-muted" style="font-size:11px;">expected: {{ p.answers | join(', ') }}</div>
+        <div class="ap-muted" style="font-size:11px;">clue: {{ p.clue or '—' }}</div>
+      </div>
+      <div class="ap-row" style="gap:6px;">
+        <button class="ap-btn sm ghost" onclick="editPerson({{ p.id }})">EDIT</button>
+        <button class="ap-btn sm danger" onclick="delPerson({{ p.id }})">DEL</button>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="ap-empty">No persons yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="ap-panel" style="margin-top:0;min-width:0;">
+    <div class="ap-panel-head">
+      <h3 class="ap-panel-title">Evidence ({{ evidence | length }})</h3>
+      <button class="ap-btn sm ghost" onclick="addEvidence()">ADD</button>
+    </div>
+    {% if evidence %}
+    {% for e in evidence %}
+    <div class="ap-between" style="padding:10px 0;border-bottom:1px solid rgba(108,43,255,.08);">
+      <div style="min-width:0;">
+        <div class="cell-strong">{{ e.name }}</div>
+        <div class="ap-mono ap-muted" style="font-size:10px;">{{ e.evidence_code }} &middot; {{ e.filename or 'no file' }}</div>
+        <div class="ap-muted" style="font-size:11px;">{{ e.evidence_type }} &middot; {{ e.status }}</div>
+      </div>
+      <div class="ap-row" style="gap:6px;">
+        <button class="ap-btn sm ghost" onclick="editEvidence({{ e.id }})">EDIT</button>
+        <button class="ap-btn sm danger" onclick="delEvidence({{ e.id }})">DEL</button>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="ap-empty">No evidence yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var CASE_ID = {{ case.id }};
+
+  /* ---------------- Case (this page) ---------------- */
+  function openEditCase() {
+    fetch('/admin/round2/api/case/' + CASE_ID).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Not found', true); return; }
+        var c = d.item;
+        document.getElementById('ce_title').value = c.title || '';
+        document.getElementById('ce_code').value = c.case_code || '';
+        document.getElementById('ce_company').value = c.company || '';
+        document.getElementById('ce_difficulty').value = c.difficulty || 'MEDIUM';
+        document.getElementById('ce_status').value = c.status || 'DRAFT';
+        document.getElementById('ce_brief').value = c.case_brief || '';
+        document.getElementById('ce_objective').value = c.objective || '';
+        document.getElementById('ce_time').value = c.time_limit || 60;
+        document.getElementById('ce_points').value = c.points || 100;
+        ApShowPanel('panel_ce');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+  function saveEditCase() {
+    var payload = {
+      case_id: CASE_ID,
+      title: document.getElementById('ce_title').value.trim(),
+      case_code: document.getElementById('ce_code').value.trim(),
+      company: document.getElementById('ce_company').value.trim(),
+      difficulty: document.getElementById('ce_difficulty').value,
+      status: document.getElementById('ce_status').value,
+      case_brief: document.getElementById('ce_brief').value.trim(),
+      objective: document.getElementById('ce_objective').value.trim(),
+      time_limit: parseInt(document.getElementById('ce_time').value || '60', 10),
+      points: parseInt(document.getElementById('ce_points').value || '100', 10)
+    };
+    if (!payload.title) { apToast('Case title is required.', true); return; }
+    ApOpenForm('/admin/round2/cases/save', payload);
+  }
+
+  /* ---------------- Stations ---------------- */
+  var stationEditing = null;
+  function openStation() {
+    stationEditing = null;
+    document.getElementById('st_modalTitle').textContent = 'New Investigation Task';
+    ['st_name','st_id','st_domain','st_desc','st_evidence','st_question','st_answer','st_hint'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('st_points').value = '100';
+    document.getElementById('st_max').value = '5';
+    document.getElementById('st_status').value = 'DRAFT';
+    document.getElementById('st_validation').value = 'NORMALIZED';
+    ApShowPanel('panel_st');
+  }
+  function editStation(id) {
+    stationEditing = id;
+    fetch('/admin/round2/api/station/' + id).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Not found', true); return; }
+        var s = d.item;
+        document.getElementById('st_modalTitle').textContent = 'Edit Task #' + id;
+        document.getElementById('st_name').value = s.name || '';
+        document.getElementById('st_id').value = s.station_id || '';
+        document.getElementById('st_domain').value = s.domain || '';
+        document.getElementById('st_desc').value = s.description || '';
+        document.getElementById('st_evidence').value = s.evidence || '';
+        document.getElementById('st_question').value = s.question || '';
+        document.getElementById('st_answer').value = s.answer || '';
+        document.getElementById('st_hint').value = s.hint || '';
+        document.getElementById('st_points').value = s.points || 100;
+        document.getElementById('st_max').value = s.max_attempts || 5;
+        document.getElementById('st_status').value = s.status || 'DRAFT';
+        document.getElementById('st_validation').value = s.validation_mode || 'NORMALIZED';
+        ApShowPanel('panel_st');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+  function saveStation() {
+    var payload = {
+      case_id: CASE_ID,
+      name: document.getElementById('st_name').value.trim(),
+      station_id: document.getElementById('st_id').value.trim(),
+      domain: document.getElementById('st_domain').value.trim(),
+      description: document.getElementById('st_desc').value.trim(),
+      evidence: document.getElementById('st_evidence').value.trim(),
+      question: document.getElementById('st_question').value.trim(),
+      answer: document.getElementById('st_answer').value.trim(),
+      hint: document.getElementById('st_hint').value.trim(),
+      points: parseInt(document.getElementById('st_points').value || '100', 10),
+      max_attempts: parseInt(document.getElementById('st_max').value || '5', 10),
+      status: document.getElementById('st_status').value,
+      validation_mode: document.getElementById('st_validation').value
+    };
+    if (stationEditing) payload.station_id_pk = stationEditing;
+    if (!payload.name) { apToast('Task name is required.', true); return; }
+    ApOpenForm('/admin/round2/tasks/save', payload);
+  }
+  function setStationStatus(id, st) { ApOpenForm('/admin/round2/tasks/' + id + '/status', { status: st }); }
+  function delStation(id) {
+    if (!confirm('Delete this task?')) return;
+    ApOpenForm('/admin/round2/tasks/' + id + '/delete', {});
+  }
+  function moveStation(id, dir) { ApOpenForm('/admin/round2/tasks/' + id + '/reorder/' + dir, {}); }
+
+  /* ---------------- Persons ---------------- */
+  var personEditing = null;
+  function openPerson() {
+    personEditing = null;
+    document.getElementById('p_modalTitle').textContent = 'Add Report Person';
+    ['p_role','p_key','p_answers','p_clue'].forEach(function (id) { document.getElementById(id).value = ''; });
+    ApShowPanel('panel_p');
+  }
+  function editPerson(id) {
+    personEditing = id;
+    fetch('/admin/round2/api/person/' + id).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Not found', true); return; }
+        var p = d.item;
+        document.getElementById('p_role').value = p.role || '';
+        document.getElementById('p_key').value = p.person_key || '';
+        document.getElementById('p_answers').value = (p.answers || []).join(', ');
+        document.getElementById('p_clue').value = p.clue || '';
+        document.getElementById('p_modalTitle').textContent = 'Edit Person #' + id;
+        ApShowPanel('panel_p');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+  function savePerson() {
+    var payload = {
+      case_id: CASE_ID,
+      role: document.getElementById('p_role').value.trim(),
+      person_key: document.getElementById('p_key').value.trim(),
+      answers: document.getElementById('p_answers').value.trim(),
+      clue: document.getElementById('p_clue').value.trim()
+    };
+    if (personEditing) payload.person_id = personEditing;
+    if (!payload.role) { apToast('Role is required.', true); return; }
+    ApOpenForm('/admin/round2/persons/save', payload);
+  }
+  function delPerson(id) {
+    if (!confirm('Delete this person?')) return;
+    ApOpenForm('/admin/round2/persons/' + id + '/delete', {});
+  }
+
+  /* ---------------- Evidence ---------------- */
+  var evidenceEditing = null;
+  function addEvidence() {
+    evidenceEditing = null;
+    document.getElementById('e_modalTitle').textContent = 'Add Evidence Item';
+    ['e_name','e_code','e_desc','e_file'].forEach(function (id) { document.getElementById(id).value = ''; });
+    document.getElementById('e_type').value = 'OTHER';
+    ApShowPanel('panel_e');
+  }
+  function editEvidence(id) {
+    evidenceEditing = id;
+    fetch('/admin/round2/api/evidence/' + id).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Not found', true); return; }
+        var e = d.item;
+        document.getElementById('e_name').value = e.name || '';
+        document.getElementById('e_code').value = e.evidence_code || '';
+        document.getElementById('e_desc').value = e.description || '';
+        document.getElementById('e_file').value = e.filename || '';
+        document.getElementById('e_type').value = e.evidence_type || 'OTHER';
+        document.getElementById('e_modalTitle').textContent = 'Edit Evidence #' + id;
+        ApShowPanel('panel_e');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+  function saveEvidence() {
+    var payload = {
+      case_id: CASE_ID,
+      name: document.getElementById('e_name').value.trim(),
+      evidence_code: document.getElementById('e_code').value.trim(),
+      description: document.getElementById('e_desc').value.trim(),
+      filename: document.getElementById('e_file').value.trim(),
+      evidence_type: document.getElementById('e_type').value
+    };
+    if (evidenceEditing) payload.evidence_id = evidenceEditing;
+    if (!payload.name) { apToast('Evidence name is required.', true); return; }
+    ApOpenForm('/admin/round2/evidence/save', payload);
+  }
+  function delEvidence(id) {
+    if (!confirm('Delete this evidence item?')) return;
+    ApOpenForm('/admin/round2/evidence/' + id + '/delete', {});
+  }
+</script>
+{% endblock %}
+
+{% block modal %}
+<div class="ap-modal-panel" id="panel_ce">
+  <div class="ap-modal-head">
+    <h3>Edit Case #{{ case.id }}</h3>
+    <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+  </div>
+  <div class="ap-form-grid">
+    <div class="ap-field"><label>Title</label><input id="ce_title"></div>
+    <div class="ap-field"><label>Case code</label><input id="ce_code" placeholder="CASE-1"></div>
+    <div class="ap-field"><label>Company</label><input id="ce_company"></div>
+    <div class="ap-field"><label>Difficulty / Status</label><div class="ap-row">
+      <select id="ce_difficulty" style="flex:1;"><option>EASY</option><option>MEDIUM</option><option>HARD</option></select>
+      <select id="ce_status" style="flex:1;">{% for s in statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select>
+    </div></div>
+    <div class="ap-field"><label>Time limit (min)</label><input id="ce_time" type="number" value="60"></div>
+    <div class="ap-field"><label>Points</label><input id="ce_points" type="number" value="100"></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Case brief</label><textarea id="ce_brief"></textarea></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Objective</label><textarea id="ce_objective"></textarea></div>
+  </div>
+  <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+    <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+    <button class="ap-btn" onclick="saveEditCase()">SAVE CASE</button>
+  </div>
+</div>
+
+<div class="ap-modal-panel" id="panel_st">
+  <div class="ap-modal-head">
+    <h3 id="st_modalTitle">Investigation Task</h3>
+    <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+  </div>
+  <div class="ap-form-grid">
+    <div class="ap-field"><label>Task name</label><input id="st_name"></div>
+    <div class="ap-field"><label>Station ID</label><input id="st_id" placeholder="S16"></div>
+    <div class="ap-field"><label>Domain</label><input id="st_domain"></div>
+    <div class="ap-field"><label>Points / Max attempts</label><div class="ap-row">
+      <input id="st_points" type="number" style="flex:1;" value="100">
+      <input id="st_max" type="number" style="flex:1;" value="5">
+    </div></div>
+    <div class="ap-field"><label>Status</label>
+      <select id="st_status">{% for s in station_statuses %}<option>{{ s }}</option>{% endfor %}</select>
+    </div>
+    <div class="ap-field"><label>Validation mode</label>
+      <select id="st_validation"><option>NORMALIZED</option><option>EXACT</option><option>CONTAINS</option><option>CASE_SENSITIVE</option></select>
+    </div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Description</label><textarea id="st_desc"></textarea></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Question</label><textarea id="st_question"></textarea></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Answer</label><input id="st_answer"></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Hint</label><input id="st_hint"></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Evidence filename (case folder)</label><input id="st_evidence"></div>
+  </div>
+  <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+    <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+    <button class="ap-btn" onclick="saveStation()">SAVE</button>
+  </div>
+</div>
+
+<div class="ap-modal-panel" id="panel_p">
+  <div class="ap-modal-head">
+    <h3 id="p_modalTitle">Report Person</h3>
+    <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+  </div>
+  <div class="ap-form-grid">
+    <div class="ap-field"><label>Role</label><input id="p_role"></div>
+    <div class="ap-field"><label>Key</label><input id="p_key"></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Expected answers (comma separated)</label><textarea id="p_answers"></textarea></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Clue</label><textarea id="p_clue"></textarea></div>
+  </div>
+  <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+    <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+    <button class="ap-btn" onclick="savePerson()">SAVE</button>
+  </div>
+</div>
+
+<div class="ap-modal-panel" id="panel_e">
+  <div class="ap-modal-head">
+    <h3 id="e_modalTitle">Evidence Item</h3>
+    <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+  </div>
+  <div class="ap-form-grid">
+    <div class="ap-field"><label>Name</label><input id="e_name"></div>
+    <div class="ap-field"><label>Evidence code</label><input id="e_code"></div>
+    <div class="ap-field"><label>Type</label>
+      <select id="e_type">{% for t in evidence_types %}<option>{{ t }}</option>{% endfor %}</select>
+    </div>
+    <div class="ap-field"><label>Filename</label><input id="e_file"></div>
+    <div class="ap-field" style="grid-column:1 / -1;"><label>Description</label><textarea id="e_desc"></textarea></div>
+  </div>
+  <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+    <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+    <button class="ap-btn" onclick="saveEvidence()">SAVE</button>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,404 @@
+{% extends "r1_base.html" %}
+{% block title %}Lab - {{ assignment.title }}{% endblock %}
+{% block content %}
+
+{% set ld = assignment.lab_payload %}
+{% set meta = assignment.lab_meta %}
+{% set lab_type = assignment.lab_type %}
+{% set is_pick = lab_type in ['password_audit','port_map','metadata','osint'] %}
+{% set is_decode = lab_type in ['decoder','cipher_chain','hash_analysis','file_magic','caesar'] %}
+
+<div style="margin-bottom:20px;">
+  <a href="{{ url_for('r1.r1_challenge', assignment_id=assignment.id) }}" class="hud-nav-link hud-btn-ghost" style="text-decoration:none;display:inline-flex;">&larr; BACK TO CHALLENGE</a>
+</div>
+
+<div class="flex items-center justify-between" style="flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+  <div>
+    <div class="flex items-center gap-sm mb-sm">
+      <span class="hud-badge hud-badge-purple">{{ assignment.code }}</span>
+      <span class="font-mono text-muted" style="font-size:0.7rem;">VARIANT {{ assignment.variant_code }}</span>
+      <span class="hud-badge hud-badge-purple">{{ meta.label if meta else (lab_type | upper) }}</span>
+      <span class="hud-badge {{ 'hud-badge-amber' if assignment.difficulty == 'Medium-Hard' else ('hud-badge-purple' if assignment.difficulty == 'Medium' else 'hud-badge-muted') }}">{{ assignment.difficulty }}</span>
+    </div>
+    <h2 class="hud-h1" style="margin:0;">{{ meta.title if meta else 'Interactive Lab' }}</h2>
+    <p class="hud-sub" style="margin:4px 0 0;">{{ meta.subtitle if meta }}</p>
+  </div>
+  <div class="hud-panel" style="padding:16px 20px;text-align:right;">
+    <div class="hud-stat-label" style="margin:0;">Value</div>
+    <div class="hud-bigstat" style="font-size:2rem;">{{ assignment.points }}<span class="u"> pts</span></div>
+    <div class="hud-stat-label">On Flag</div>
+  </div>
+</div>
+
+<div class="hud-panel hud-panel-cn" style="padding:20px;margin-bottom:20px;">
+  <div class="hud-panel-title" style="margin-bottom:10px;">Objective</div>
+  <p style="font-size:1.0rem;line-height:1.7;color:var(--hud-muted);margin-bottom:8px;">{{ assignment.objective }}</p>
+  <p class="hud-sub" style="font-size:0.875rem;margin:0;">{{ meta.instructions if meta }}</p>
+</div>
+
+{% if lab_completed %}
+  <div class="hud-panel" style="border-color:rgba(52,211,153,0.4);padding:24px;margin-bottom:20px;">
+    <div class="hud-kicker" style="color:var(--hud-green);">&#10003; LAB COMPLETED</div>
+    <p style="margin:10px 0 0;color:var(--hud-muted);font-size:1rem;line-height:1.7;">
+      Your lab objective was completed successfully. Your flag has been revealed.
+      Return to the challenge page and submit it to earn {{ assignment.points }} points.
+    </p>
+    {% if flag_revealed %}
+    <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <span class="font-mono" style="background:rgba(8,13,22,0.8);border:1px dashed var(--hud-line);border-radius:8px;padding:10px 16px;color:var(--hud-green);font-size:1rem;" id="revealed-flag">{{ revealed_flag }}</span>
+      <button class="hud-btn hud-btn-green btn-sm" type="button" onclick="copyRevealed(document.getElementById('revealed-flag').textContent.trim(), 'copied-flag-msg')">COPY FLAG</button>
+      <span id="copied-flag-msg" class="text-success font-mono" style="font-size:0.8rem;"></span>
+    </div>
+    {% endif %}
+  </div>
+  <a href="{{ url_for('r1.r1_challenge', assignment_id=assignment.id) }}" class="hud-btn hud-btn-green">GO SUBMIT THE FLAG</a>
+{% else %}
+
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px;">
+    <div class="card-header" style="padding:14px 22px;border-bottom:1px solid var(--border);background:var(--bg-elevated);margin:0;">
+      <span class="font-mono text-muted" style="font-size:0.72rem;">{{ meta.title if meta }}</span>
+      <span class="badge badge-neutral">SANDBOX</span>
+    </div>
+    <div style="padding:24px;">
+
+    {# ---------------- LOGIN BYPASS ---------------- #}
+    {% if lab_type == 'login_bypass' %}
+      <div style="max-width:420px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:18px;">
+          <div style="width:52px;height:52px;border-radius:var(--radius-md);background:var(--accent-glow);border:1px solid var(--accent-border);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">&#128274;</div>
+          <div class="font-mono text-accent" style="font-size:0.9rem;">{{ ld.app }}</div>
+        </div>
+        <div class="card" style="background:var(--bg-base);padding:20px;" id="login-form">
+          {% for f in ld.fields %}
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">{{ f.label }}</label>
+            <input class="form-input form-input-mono login-field" type="text" autocomplete="off" spellcheck="false">
+          </div>
+          {% endfor %}
+          <button id="login-btn" type="button" class="btn btn-primary" style="width:100%;">{{ ld.submit_label }}</button>
+          <div id="login-status" style="margin-top:14px;font-family:var(--font-mono);font-size:0.8rem;"></div>
+        </div>
+        <div class="card-terminal" style="margin-top:14px;font-size:0.72rem;">{{ ld.query_hint }}</div>
+      </div>
+
+    {# ---------------- PICK / RECORD LABS ---------------- #}
+    {% elif is_pick %}
+      {% if ld.scenario %}<div class="card-section">{{ ld.scenario }}</div>{% endif %}
+      {% if ld.prompt %}<div class="card-section" style="color:var(--warning);">{{ ld.prompt }}</div>{% endif %}
+
+      {# account records table #}
+      {% if ld.records %}
+      <div class="font-overline text-muted mb-sm" style="margin-top:6px;">ACCOUNT RECORDS</div>
+      <div class="table-wrapper" style="margin-bottom:14px;">
+        <table class="table">
+          <thead><tr>
+            {% for key in ld.records[0].keys() %}<th>{{ key }}</th>{% endfor %}
+          </tr></thead>
+          <tbody>
+            {% for rec in ld.records %}
+            <tr>{% for key in rec.keys() %}<td>{{ rec[key] }}</td>{% endfor %}</tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {# port map service list #}
+      {% if ld.services %}
+      <div class="font-overline text-muted mb-sm" style="margin-top:6px;">SCAN RESULTS</div>
+      <div class="card-terminal" style="margin-bottom:14px;">
+        {% for line in ld.services %}<div>{{ line }}</div>{% endfor %}
+        {% if ld.notes %}<div style="margin-top:8px;color:var(--cyan);">{{ ld.notes }}</div>{% endif %}
+      </div>
+      {% endif %}
+
+      {# metadata rows #}
+      {% if ld.metadata %}
+      <div class="font-overline text-muted mb-sm" style="margin-top:6px;">ARTIFACT METADATA</div>
+      <div class="card" style="background:var(--bg-base);margin-bottom:14px;">
+        {% for key, val in ld.metadata.items() %}
+        <div class="meta-row"><span class="meta-label">{{ key }}</span><span class="meta-value">{{ val }}</span></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# osint clues #}
+      {% if ld.clues %}
+      <div class="font-overline text-muted mb-sm" style="margin-top:6px;">PUBLIC CLUES</div>
+      {% for clue in ld.clues %}
+      <div class="card-section">{{ clue }}</div>
+      {% endfor %}
+      {% endif %}
+
+      {% if ld.answer_hint %}<div class="text-muted" style="font-size:0.8rem;margin-top:8px;">{{ ld.answer_hint }}</div>{% endif %}
+
+    {# ---------------- SOURCE VIEW / WEB SOURCE ---------------- #}
+    {% elif lab_type == 'source_view' %}
+      {% if ld.filename %}<div class="font-mono text-muted mb-sm">{{ ld.filename }}</div>{% endif %}
+      {% if ld.source %}
+      <div class="card-terminal" style="font-size:0.82rem;padding:22px;">{{- ld.source -}}</div>
+      {% elif ld.snippet %}
+      <div class="card-terminal" style="font-size:0.82rem;padding:22px;">{{- ld.snippet -}}</div>
+      {% endif %}
+      {% if ld.notes %}<div class="text-muted" style="font-size:0.8rem;margin-top:10px;">{{ ld.notes }}</div>{% endif %}
+      {% if ld.prompt %}<div class="text-warning" style="font-size:0.85rem;margin-top:10px;">{{ ld.prompt }}</div>{% endif %}
+
+    {# ---------------- DECODE / TERMINAL LABS ---------------- #}
+    {% elif is_decode %}
+      <div class="card-terminal" style="font-size:0.9rem;padding:22px;">
+        <div style="opacity:0.5;font-size:0.72rem;margin-bottom:12px;">// sandbox_data</div>
+        {% if ld.encoded %}<div style="color:var(--cyan);word-break:break-all;">{{ ld.encoded }}</div>{% endif %}
+        {% if ld.magic %}<div style="color:var(--cyan);word-break:break-all;">{% for b in ld.magic.split() %}<span style="padding-right:4px;">{{ b }}</span>{% endfor %}</div>{% endif %}
+        {% if ld.filename %}<div style="margin-top:8px;color:var(--text-muted);font-size:0.78rem;">filename: {{ ld.filename }}</div>{% endif %}
+        {% if ld.encoding %}<div style="margin-top:12px;color:var(--accent);font-size:0.78rem;">{{ ld.encoding }}</div>{% endif %}
+        {% if ld.shift_label %}<div style="margin-top:12px;color:var(--accent);font-size:0.78rem;">{{ ld.shift_label }}</div>{% endif %}
+        {% if ld.chain %}<div style="margin-top:14px;color:var(--text-secondary);font-size:0.78rem;">{% for c in ld.chain %}<div>&#9656; {{ c }}</div>{% endfor %}</div>{% endif %}
+        {% if ld.wordlist %}<div style="margin-top:14px;color:var(--text-secondary);font-size:0.78rem;">WORDLIST: {% for w in ld.wordlist %}{{ w }}{% if not loop.last %} &middot; {% endif %}{% endfor %}</div>{% endif %}
+        {% if ld.notes %}<div style="margin-top:12px;color:var(--text-muted);font-size:0.75rem;">{{ ld.notes }}</div>{% endif %}
+        {% if ld.prompt %}<div style="margin-top:14px;color:var(--warning);font-size:0.82rem;">{{ ld.prompt }}</div>{% endif %}
+        {% if ld.answer_hint %}<div style="margin-top:8px;color:var(--text-muted);font-size:0.75rem;">{{ ld.answer_hint }}</div>{% endif %}
+      </div>
+
+    {% else %}
+      <pre class="card-terminal" style="font-size:0.85rem;">{{ ld }}</pre>
+    {% endif %}
+
+    </div>
+  </div>
+
+  {# ---------------- ANSWER / LAB ACTION ---------------- #}
+  {% set frozen = lab_submitted and not locked %}
+
+  {% if locked %}
+  {# Permanently locked after exhausting all attempts: blue state, no interaction #}
+  <div class="hud-panel" style="padding:20px;margin-bottom:20px;border-color:var(--hud-line-soft);">
+    <div class="flex items-center gap-md">
+      <span class="status-dot inactive"></span>
+      <div>
+        <div class="hud-kicker" style="color:var(--hud-purple-lt);">SUBMITTED</div>
+        <p class="hud-sub" style="margin:6px 0 0;font-size:0.9rem;">
+          This question has been locked. No further attempts are available.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud-panel" style="padding:20px;margin-bottom:20px;">
+    <div class="hud-kicker" style="color:var(--hud-dim);margin-bottom:12px;">
+      {{ 'ENTER YOUR PAYLOAD' if lab_type == 'login_bypass' else 'SUBMIT YOUR RESULT' }}
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <input id="lab-answer" type="text" class="flag-input" style="flex:1;min-width:220px;" disabled readonly
+             placeholder="{{ 'No further attempts available' if lab_type == 'login_bypass' else 'Question locked' }}"
+             autocomplete="off" spellcheck="false">
+      <button id="lab-submit" type="button" class="hud-btn btn-lg" disabled>LOCKED</button>
+    </div>
+    <div id="lab-result" style="margin-top:14px;"></div>
+  </div>
+
+  {% elif frozen %}
+  {# Submitted / frozen state: the answer input is disabled until the user
+     explicitly advances to the next attempt via the game flow (TRY AGAIN). #}
+  <div class="hud-panel" style="padding:20px;margin-bottom:20px;border-color:var(--hud-line-soft);">
+    <div class="flex items-center gap-md">
+      <span class="status-dot inactive"></span>
+      <div>
+        <div class="hud-kicker" style="color:var(--hud-purple-lt);">SUBMITTED</div>
+        <p class="hud-sub" style="margin:6px 0 0;font-size:0.9rem;">
+          Your answer has been recorded. You may continue with the next attempt when you are ready.
+        </p>
+      </div>
+      <span style="margin-left:auto;">
+        <button id="lab-try-again" type="button" class="hud-btn hud-btn-ghost">TRY AGAIN</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="hud-panel" style="padding:20px;margin-bottom:20px;">
+    <div class="hud-kicker" style="color:var(--hud-dim);margin-bottom:12px;">
+      {{ 'ENTER YOUR PAYLOAD' if lab_type == 'login_bypass' else 'SUBMIT YOUR RESULT' }}
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <input id="lab-answer" type="text" class="flag-input" style="flex:1;min-width:220px;" disabled readonly
+             placeholder="{{ 'Answer submitted' if lab_type == 'login_bypass' else 'Answer submitted' }}"
+             autocomplete="off" spellcheck="false">
+      <button id="lab-submit" type="button" class="hud-btn btn-lg" disabled>SUBMITTED</button>
+    </div>
+    <div id="lab-result" style="margin-top:14px;"></div>
+  </div>
+
+  {% else %}
+  <div class="hud-panel" style="padding:20px;margin-bottom:20px;">
+    <div class="hud-kicker" style="color:var(--hud-purple-lt);margin-bottom:12px;">
+      {{ 'ENTER YOUR PAYLOAD' if lab_type == 'login_bypass' else 'SUBMIT YOUR RESULT' }}
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <input id="lab-answer" type="text" class="flag-input" style="flex:1;min-width:220px;"
+             placeholder="{{ 'Type the payload, then press SIGN IN above' if lab_type == 'login_bypass' else 'Enter the value you determined...' }}"
+             autocomplete="off" spellcheck="false">
+      <button id="lab-submit" type="button" class="hud-btn hud-btn-green btn-lg">{{ 'CHECK PAYLOAD' if lab_type == 'login_bypass' else 'RUN CHECK' }}</button>
+    </div>
+    <div id="lab-result" style="margin-top:14px;"></div>
+  </div>
+  {% endif %}
+
+  <script>
+    (function() {
+      var ls = document.getElementById('lab-submit');
+      var input = document.getElementById('lab-answer');
+      var result = document.getElementById('lab-result');
+      var loginBtn = document.getElementById('login-btn');
+      var loginStatus = document.getElementById('login-status');
+      var tryAgain = document.getElementById('lab-try-again');
+      var frozen = {{ 'true' if frozen else 'false' }};
+      var locked = {{ 'true' if locked else 'false' }};
+      var points = {{ assignment.points }};
+      var forfeited = false;
+
+      function freezeUI() {
+        if (input) { input.disabled = true; input.readOnly = true; }
+        if (ls) ls.disabled = true;
+        if (loginBtn) loginBtn.disabled = true;
+      }
+
+      function unlockForNextAttempt() {
+        if (input) { input.disabled = false; input.readOnly = false; input.value = ''; }
+        if (ls) ls.disabled = false;
+        if (loginBtn) loginBtn.disabled = false;
+      }
+
+      function showSubmitted() {
+        result.innerHTML = '<div class="card" style="background:var(--accent-glow);border-color:var(--accent-border);padding:14px 16px;">' +
+          '<div class="font-overline" style="color:var(--accent);">SUBMITTED</div>' +
+          '<p style="margin:6px 0 0;color:var(--text-secondary);font-size:0.85rem;">Answer recorded. Resolve the next question or continue when ready.</p></div>';
+        freezeUI();
+        window.location.reload();
+      }
+
+      function showLocked() {
+        result.innerHTML = '<div class="card" style="background:var(--danger-bg);border-color:var(--danger);padding:16px 18px;">' +
+          '<div class="font-overline text-danger">QUESTION LOCKED</div>' +
+          '<p style="margin:6px 0 0;color:var(--text-secondary);font-size:0.85rem;">All attempts used. This question is locked and no further attempts are available. Moving to the next challenge...</p></div>';
+        freezeUI();
+        // Advance to the next challenge once this section is locked.
+        setTimeout(function(){ window.location.href = '{{ url_for("r1.r1_dashboard") }}'; }, 2000);
+      }
+
+      function submitAnswer(answer) {
+        result.innerHTML = '<span class="text-muted font-mono">Checking...</span>';
+        var fd = new FormData(); fd.append('answer', answer);
+        fetch('{{ url_for("r1.r1_lab_action", assignment_id=assignment.id) }}', { method:'POST', body: fd })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (!d.ok) {
+              if (d.locked) { showLocked(); return; }
+              if (d.frozen) { showSubmitted(); return; }
+              result.innerHTML = '<span class="text-muted">' + (d.error || 'Request could not be completed.') + '</span>';
+              return;
+            }
+            if (d.completed) {
+              result.innerHTML = '<div class="card" style="background:var(--success-bg);border-color:var(--success);padding:16px 18px;">' +
+                '<div class="font-overline text-success">LAB COMPLETE &mdash; FLAG REVEALED</div>' +
+                '<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">' +
+                '<span class="font-mono" style="font-size:1rem;color:var(--success);word-break:break-all;" id="js-flag">' + d.flag + '</span>' +
+                '<button type="button" class="btn btn-success btn-sm" onclick="flashCopied()">COPY FLAG</button>' +
+                '</div>' +
+                '<p style="margin:12px 0 0;font-size:0.85rem;color:var(--text-secondary);">Return to the challenge page and submit this flag to score ' + {{ assignment.points }} + ' points.</p></div>';
+              if (loginStatus) loginStatus.innerHTML = '<span class="text-success">&#10003; ACCESS GRANTED</span>';
+              freezeUI();
+              setTimeout(function(){ window.location.reload(); }, 3000);
+            } else {
+              // Wrong answer: show a red "credit loss" popup at the top.
+              showLoseToast(points, d.status === 'locked');
+              // Answer recorded: freeze immediately (blue state). If the server
+              // locked the question, the frozen state is permanent; otherwise the
+              // user can advance to the next attempt via the game flow.
+              if (d.status === 'locked') {
+                showLocked();
+              } else {
+                showSubmitted();
+              }
+            }
+          })
+          .catch(function(){ result.innerHTML = '<span class="text-muted">Request error.</span>'; });
+      }
+
+      if (tryAgain) {
+        tryAgain.addEventListener('click', function(){
+          result.innerHTML = '<span class="text-muted font-mono">Preparing next attempt...</span>';
+          fetch('{{ url_for("r1.r1_lab_next", assignment_id=assignment.id) }}', { method:'POST' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              if (!d.ok) {
+                if (d.locked) { showLocked(); return; }
+                result.innerHTML = '<span class="text-muted">' + (d.error || 'Unable to continue.') + '</span>';
+                return;
+              }
+              window.location.reload();
+            })
+            .catch(function(){ result.innerHTML = '<span class="text-muted">Request error.</span>'; });
+        });
+      }
+
+      if (frozen || locked) { freezeUI(); }
+
+      if (ls) ls.addEventListener('click', function(){ submitAnswer(input.value.trim()); });
+      if (input) input.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !input.disabled && ls) ls.click(); });
+
+      if (loginBtn) {
+        loginBtn.addEventListener('click', function(){
+          var payload = input.value.trim();
+          if (loginStatus) loginStatus.innerHTML = '<span class="text-muted">Authenticating...</span>';
+          submitAnswer(payload);
+        });
+      }
+    })();
+  </script>
+
+  <div id="points-lose-toast" aria-live="assertive" style="position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:3000;opacity:0;pointer-events:none;transition:opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);"></div>
+  <script>
+    function showLoseToast(points, isLocked) {
+      var el = document.getElementById('points-lose-toast');
+      if (!el) return;
+      var n = parseInt(points, 10) || 0;
+      var tag = isLocked ? 'QUESTION LOCKED' : 'WRONG ANSWER';
+      el.innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;background:var(--bg-elevated);border:1px solid var(--danger);box-shadow:0 8px 32px rgba(0,0,0,0.5);border-radius:var(--radius-lg);padding:14px 22px;">' +
+        '<span style="width:34px;height:34px;border-radius:50%;background:var(--danger-bg);display:inline-flex;align-items:center;justify-content:center;font-size:1rem;">&#10060;</span>' +
+        '<div>' +
+        '<div class="font-overline text-danger">'+ tag +'</div>' +
+        '<div class="font-mono" style="font-size:1.4rem;font-weight:800;color:var(--danger);line-height:1;">-'+ n +'</div>' +
+        '</div></div>';
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-50%) translateY(-20px)';
+      }, 2000);
+    }
+  </script>
+
+  <script>
+    function flashCopied() {
+      var f = document.getElementById('js-flag');
+      if (!f) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(f.textContent.trim()).then(function(){ cmsg('FLAG COPIED'); });
+      } else {
+        var t = document.createElement('textarea'); t.value = f.textContent.trim();
+        document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); cmsg('FLAG COPIED');
+      }
+    }
+    function copyRevealed(txt, id) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function(){ if (id) document.getElementById(id).textContent = 'COPIED'; });
+      } else {
+        var t = document.createElement('textarea'); t.value = txt;
+        document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
+        if (id) document.getElementById(id).textContent = 'COPIED';
+      }
+    }
+    function cmsg(m){ var r = document.getElementById('lab-result'); if (r) r.innerHTML = '<span class="text-success font-mono">' + m + '</span>'; }
+  </script>
+{% endif %}
+{% endblock %}

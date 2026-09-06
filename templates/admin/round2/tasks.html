@@ -1,0 +1,59 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Tasks{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 &mdash; Investigation Tasks</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Evidence-board station questions and answers</div>
+  </div>
+  <select onchange="location.href='/admin/round2/tasks?case=' + this.value" style="background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:8px 10px;">
+    <option value="">SELECT CASE</option>
+    {% for c in cases %}
+    <option value="{{ c.id }}" {% if selected and selected|int == c.id %}selected{% endif %}>{{ c.title }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Tasks {{ '(' + (stations|length)|string + ')' if selected else '' }}</h3>
+    {% if selected %}<button class="ap-btn sm" onclick="location.href='/admin/round2/cases/{{ selected }}'">MANAGE IN CASE</button>{% endif %}
+  </div>
+  {% if stations %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th></th><th>Task</th><th>Domain</th><th>Question</th><th>Answer</th><th>Status</th></tr>
+      {% for s in stations %}
+      <tr>
+        <td>
+          <div class="ap-row" style="gap:2px;">
+            <button class="ap-btn sm ghost" onclick="move({{ s.id }}, 'up')">&#9650;</button>
+            <button class="ap-btn sm ghost" onclick="move({{ s.id }}, 'down')">&#9660;</button>
+          </div>
+        </td>
+        <td class="cell-strong">{{ s.name }}<div class="ap-mono ap-muted" style="font-size:10px;">{{ s.station_id }}</div></td>
+        <td><span class="ap-badge neutral">{{ s.domain or '—' }}</span></td>
+        <td style="max-width:340px;">{{ s.question }}</td>
+        <td class="ap-mono" style="max-width:200px;">{{ s.answer }}</td>
+        <td>
+          <span class="ap-badge {{ 'success' if s.status == 'PUBLISHED' else ('warning' if s.status == 'DRAFT' else 'muted') }}">{{ s.status }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% elif selected %}
+  <div class="ap-empty">No tasks for this case.</div>
+  {% else %}
+  <div class="ap-empty">Choose a case to browse its investigation tasks.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function move(id, dir) { ApOpenForm('/admin/round2/tasks/' + id + '/reorder/' + dir, {}); }
+</script>
+{% endblock %}

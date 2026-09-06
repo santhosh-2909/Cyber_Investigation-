@@ -1,0 +1,2 @@
+acct 0987654321 -> beneficiary Rajan Iyer
+amount: 650000 INR

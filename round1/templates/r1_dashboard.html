@@ -1,0 +1,128 @@
+{% extends "r1_base.html" %}
+{% block title %}My Round - Cyber Puzzle{% endblock %}
+{% block content %}
+
+{% if session_row is none %}
+  <!-- No active session yet -->
+  <div class="hud-panel hud-panel-cn" style="max-width:620px;margin:3vh auto 0;text-align:center;padding:40px;">
+    <div class="hud-complete-check" style="width:60px;height:60px;font-size:26px;">&#9654;</div>
+    <div class="hud-kicker" style="margin-top:18px;">READY TO START</div>
+    <h2 class="hud-h1" style="margin:8px 0 10px;">Your Round Is Waiting</h2>
+    <p class="hud-sub" style="max-width:460px;margin:0 auto 24px;">
+      Welcome, <span style="color:var(--hud-purple-lt);font-weight:700;">{{ team.team_name }}</span>. When you press start, the server
+      will securely generate a random set of six challenges across the twelve cyber fundamentals domains
+      and begin your 30-minute timer.
+    </p>
+    <form method="POST" action="{{ url_for('r1.r1_start') }}">
+      <button type="submit" class="hud-btn hud-btn-green" style="width:100%;padding:14px 24px;">
+        &#9654; START MY 30-MINUTE ROUND
+      </button>
+    </form>
+    <p class="hud-sub" style="font-size:10px;letter-spacing:0.12em;margin-top:14px;text-transform:uppercase;opacity:0.7;">
+      Verified server-side &middot; no round may be replayed
+    </p>
+  </div>
+{% else %}
+  {% set a = unlocked %}
+
+  <!-- Kicker -->
+  <div style="margin-bottom:22px;">
+    <div class="hud-kicker">MY ROUND / SESSION {{ session_row.id }}</div>
+    <h1 class="hud-h1">ROUND 1</h1>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start;">
+
+    <!-- LEFT: current mission + status -->
+    <div>
+      <a href="{{ url_for('r1.r1_challenge', assignment_id=a.assignment_id) }}"
+         class="hud-mission">
+        <div class="hud-mission-top">
+          <span class="hud-mission-seq">CURRENT MISSION</span>
+          <span class="hud-badge hud-badge-purple">CHALLENGE {{ a.display_order }} / 6</span>
+        </div>
+        <div class="hud-mission-body">
+          <div class="hud-kicker" style="color:var(--hud-green);font-size:10px;">{{ a.challenge_code }} &middot; {{ a.difficulty | upper }}</div>
+          <h2 class="hud-mission-title">{{ a.title }}</h2>
+          <div class="hud-mission-cat">{{ a.domain }} &middot; Cyber Fundamentals</div>
+        </div>
+        <div class="hud-mission-foot">
+          <span class="hud-badge hud-badge-muted">{{ a.points }} PTS</span>
+          {% if a.lab_status == 'LAB_COMPLETED' %}
+            <span class="hud-badge hud-badge-green">SUBMIT FLAG &rarr;</span>
+          {% elif a.lab_status == 'IN_PROGRESS' %}
+            <span class="hud-badge hud-badge-purple">RESUME LAB &rarr;</span>
+          {% else %}
+            <span class="hud-nav-arrow">OPEN LAB &rarr;</span>
+          {% endif %}
+        </div>
+      </a>
+
+      <!-- System status panel -->
+      <div class="hud-panel" style="margin-top:20px;">
+        <div class="hud-panel-title">System Status</div>
+        <div class="hud-datarow"><span class="k">Firewall</span><span class="v">Active</span></div>
+        <div class="hud-datarow"><span class="k">Challenge</span><span class="v">{{ 'Online' if a.lab_status != 'LAB_COMPLETED' else 'Handed Off' }}</span></div>
+        <div class="hud-datarow"><span class="k">Session</span><span class="v">{{ session_row.status }} Secure</span></div>
+        <div class="hud-datarow"><span class="k">Team</span><span class="v">Connected</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: progress + mission log -->
+    <div>
+      <div class="hud-panel">
+        <div class="hud-panel-title">Round 1 Progress</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span class="hud-bigstat">{{ completed }}<span class="u">/6</span></span>
+          <span class="hud-stat-label" style="margin-top:0;">Solved</span>
+        </div>
+        <div class="hud-progress-track" style="margin:14px 0 16px;">
+          <div class="hud-progress-fill" style="width:{{ (completed * 100 / 6) }}%;"></div>
+        </div>
+        <div class="hud-datarow"><span class="k">Time Left</span><span class="v purple" id="hud-timer">--:--</span></div>
+        <div class="hud-datarow"><span class="k">Score</span><span class="v">{{ session_row.score }} <span style="color:var(--hud-dim);">/ 600</span></span></div>
+      </div>
+
+      <div class="hud-panel" style="margin-top:20px;">
+        <div class="hud-panel-title">Mission Log</div>
+        {% if events %}
+          {% for e in events %}
+          <div class="hud-log-line">
+            <span class="t">[{{ ((e.occurred_at - session_row.started_at) / 60000) | round(0, 'floor') | int }}:{{ '%02d' | format(((e.occurred_at - session_row.started_at) % 60000) / 1000 | round(0, 'floor') | int) }}]</span>
+            <span class="txt">
+              {%- if e.kind == 'lab_opened' %}Lab opened — activity started
+              {%- elif e.kind == 'lab_completed' %}Lab objective complete
+              {%- elif e.kind == 'flag_submitted' and e.detail == 'correct' %}Flag verified — points credited
+              {%- elif e.kind == 'flag_submitted' %}Flag submitted — invalid
+              {%- elif e.kind == 'flag_revealed' %}Flag revealed
+              {%- else %}{{ e.kind }} registered
+              {%- endif -%}
+            </span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="hud-log-line"><span class="txt">Awaiting first system event...</span></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var endMs = new Date().getTime() + parseInt({{ session_row.remaining_ms }}, 10);
+      var el = document.getElementById('hud-timer');
+      function pad(n){ return String(n).padStart(2,'0'); }
+      function tick(){
+        var rem = endMs - new Date().getTime();
+        if (rem <= 0){ el.textContent = '00:00'; el.style.color = 'var(--hud-red)'; return; }
+        var m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
+        el.textContent = pad(m) + ':' + pad(s);
+        if (rem <= 60000) el.style.color = 'var(--hud-red)';
+        else if (rem <= 5*60000) el.style.color = 'var(--hud-amber)';
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+{% endif %}
+{% endblock %}

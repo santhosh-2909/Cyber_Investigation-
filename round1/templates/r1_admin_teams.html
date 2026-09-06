@@ -1,0 +1,70 @@
+{% extends "r1_admin_base.html" %}
+{% block title %}Teams - Cyber Puzzle Admin{% endblock %}
+{% block content %}
+<div class="admin-section-title flex items-center justify-between" style="gap:16px;flex-wrap:wrap;">
+  <div>
+    <h2>Team Login Management</h2>
+    <p>{{ teams|length }} registered teams. Manage the two round credentials below.</p>
+  </div>
+  <a href="{{ url_for('admin_team_logins', round_name='round1') }}#add-team" class="btn btn-primary">+ ADD TEAM</a>
+</div>
+
+<div class="grid grid-2 mb-xl" style="gap:14px;">
+  <a href="{{ url_for('admin_team_logins', round_name='round1') }}" class="card" style="padding:18px 20px;text-decoration:none;color:inherit;border-color:rgba(155,77,255,.38);">
+    <div class="font-overline text-accent">ROUND 1 LOGIN</div>
+    <h3 style="margin-top:8px;">TEAM NAME + TEAM ID →</h3>
+    <p class="text-secondary" style="margin-top:8px;font-size:.82rem;">Create and view the Team ID used for Cyber Puzzle login.</p>
+  </a>
+  <a href="{{ url_for('admin_team_logins', round_name='round2') }}" class="card" style="padding:18px 20px;text-decoration:none;color:inherit;border-color:rgba(34,211,238,.38);">
+    <div class="font-overline text-cyan">ROUND 2 LOGIN</div>
+    <h3 style="margin-top:8px;">TEAM NAME + ACCESS ID →</h3>
+    <p class="text-secondary" style="margin-top:8px;font-size:.82rem;">Manually issue or replace the Forensics Access ID.</p>
+  </a>
+</div>
+
+<div class="admin-section-title" style="margin-bottom:12px;">
+  <h3>Round 1 Activity</h3>
+  <p>Challenge progress for registered teams.</p>
+</div>
+
+<div class="table-wrapper" style="background:var(--surface, #12161f);border:1px solid var(--border);border-radius:var(--radius-lg, 12px);padding:8px 16px;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Team ID</th>
+        <th>Team Name</th>
+        <th>Participants</th>
+        <th>Registered</th>
+        <th>Last Status</th>
+        <th>Labs Opened</th>
+        <th>Labs Done</th>
+        <th>Score</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in teams %}
+      <tr>
+        <td><span class="font-mono text-muted">{{ t.id }}</span></td>
+        <td><span class="font-mono">{{ t.team_id }}</span></td>
+        <td><span style="font-weight:600;color:var(--text-primary);">{{ t.team_name }}</span></td>
+        <td><span class="text-secondary">{{ t.participant_names or '—' }}</span></td>
+        <td><span class="font-mono text-muted">{{ t.created_at }}</span></td>
+        <td>
+          {% if t.last_status %}
+            <span class="badge {{ 'badge-success' if t.last_status == 'COMPLETED' else ('badge-neutral' if t.last_status == 'ACTIVE' else 'badge-danger') }}">{{ t.last_status }}</span>
+          {% else %}
+            <span class="badge badge-neutral">NO ROUND</span>
+          {% endif %}
+        </td>
+        <td><span class="font-mono text-accent">{{ t.labs_open or 0 }}</span></td>
+        <td><span class="font-mono text-cyan">{{ t.labs_done or 0 }}</span></td>
+        <td><span class="font-mono text-primary">{{ t.last_score or 0 }}</span></td>
+        <td><a href="{{ url_for('r1.r1_admin_team_detail', team_id=t.id) }}" class="btn btn-subtle btn-sm">Detail</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "admin_base.html" %}
+{% block title %}Team Profile{% endblock %}
+{% block content %}
+
+{% set t = profile.team %}
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">{{ t.team_name }}</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Team #{{ t.id }} &middot; created {{ t.created_at | ts }}</div>
+  </div>
+  <div class="ap-row">
+    <a href="{{ url_for('admin_round1_teams') }}" class="ap-btn ghost sm">ROUND 1 TEAMS</a>
+    <a href="{{ url_for('admin_round2_teams') }}" class="ap-btn ghost sm">ROUND 2 TEAMS</a>
+  </div>
+</div>
+
+<div class="ap-cards">
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Round 1 access</span>
+    <span class="ap-stat-value" style="font-size:15px;">{{ 'ENABLED' if t.round1_enabled else 'DISABLED' }}</span>
+    <span class="ap-mono ap-muted" style="font-size:11px;">id: {{ t.round1_access_id }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Round 2 access</span>
+    <span class="ap-stat-value" style="font-size:15px;">{{ 'ENABLED' if t.round2_enabled else 'DISABLED' }}</span>
+    <span class="ap-mono ap-muted" style="font-size:11px;">id: {{ t.round2_access_id }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Team status</span>
+    <span class="ap-stat-value" style="font-size:15px;">{{ 'ACTIVE' if t.is_active else 'SUSPENDED' }}</span>
+    <span class="ap-muted" style="font-size:11px;">{{ t.participant_names or 'no members listed' }}</span>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Round 2 Login History</h3></div>
+  {% if profile.login_history %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Round</th><th>Login</th><th>Last seen</th><th>State</th><th>Case</th></tr>
+      {% for l in profile.login_history %}
+      <tr>
+        <td>{{ 'R1' if l.round_name == 'round1' else 'R2' }}</td>
+        <td class="ap-mono">{{ l.login_time | ts }}</td>
+        <td class="ap-mono">{{ l.last_seen | ts }}</td>
+        <td><span class="ap-badge {{ 'success' if l.status == 'ACTIVE' else 'muted' }}">{{ l.status }}</span></td>
+        <td class="ap-mono">{{ l.case_code or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No round logins recorded.</div>
+  {% endif %}
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Round 1 Sessions</h3></div>
+  {% if profile.r1_sessions %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Started</th><th>Ends</th><th>State</th><th>Score</th><th>Solved</th></tr>
+      {% for s in profile.r1_sessions %}
+      <tr>
+        <td class="ap-mono">{{ s.started_at | ts }}</td>
+        <td class="ap-mono">{{ s.ends_at | ts }}</td>
+        <td><span class="ap-badge {{ 'success' if s.status == 'COMPLETED' else ('warning' if s.status == 'ACTIVE' else 'muted') }}">{{ s.status }}</span></td>
+        <td class="cell-strong">{{ s.score }}</td>
+        <td>{{ s.challenges_solved }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No Round 1 sessions.</div>
+  {% endif %}
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Round 1 Challenge Assignments</h3></div>
+  {% if profile.r1_assignments %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Challenge</th><th>Variant</th><th>Status</th><th>Lab status</th><th>Attempts</th><th>Points</th></tr>
+      {% for a in profile.r1_assignments %}
+      <tr>
+        <td class="cell-strong">{{ a.title }} <span class="ap-mono ap-muted">{{ a.challenge_code }}</span></td>
+        <td class="ap-mono">{{ a.variant_code }}</td>
+        <td><span class="ap-badge neutral">{{ a.status }}</span></td>
+        <td>{{ a.lab_status }}</td>
+        <td>{{ a.lab_attempts }}</td>
+        <td class="cell-strong">{{ a.points_awarded }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No Round 1 assignments.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

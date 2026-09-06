@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Case Brief — {{ case.title }} · {{ case.code }}{% endblock %}
+{% block content %}
+<div class="fs-shell">
+  <header class="fs-masthead">
+    <div class="file-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </div>
+    <div>
+      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
+        <span class="fs-chip violet">{{ case.code }}</span>
+        <span class="fs-chip dim">CASE BRIEF</span>
+      </div>
+      <div class="mh-title">{{ case.title | upper }}</div>
+      <div class="mh-sub">{{ team.name }} &middot; {{ team.captain }} &middot; {{ case.company }}</div>
+    </div>
+    <div class="mh-right">
+      <div class="fs-meter">
+        <span class="fs-overline">EVIDENCE</span>
+        <div class="m-track"><div class="m-fill" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%"></div></div>
+        <span class="fs-mono" style="font-size:.72rem;color:var(--text-secondary);">{{ verified }}/{{ case.stations|length }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Workflow -->
+  <div class="fs-card" style="padding:18px 20px;margin-bottom:14px;">
+    <div class="wf">
+      <div class="wf-step done"><div class="wf-dot">1</div><div class="wf-label">Case Opened</div></div>
+      <div class="wf-step {{ 'done' if stage in ('evidence','report','complete') else 'active' }}"><div class="wf-dot">2</div><div class="wf-label">Brief Read</div></div>
+      <div class="wf-step {{ 'done' if stage in ('report','complete') else 'active' if stage == 'evidence' }}"><div class="wf-dot">3</div><div class="wf-label">Evidence</div></div>
+      <div class="wf-step {{ 'done' if stage == 'complete' else 'active' if stage == 'report' }}"><div class="wf-dot">4</div><div class="wf-label">Verdict</div></div>
+      <div class="wf-step {{ 'active' if stage == 'complete' }}"><div class="wf-dot">5</div><div class="wf-label">Closed</div></div>
+    </div>
+  </div>
+
+  <!-- Narrative cards -->
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+    <div class="flex items-center gap-sm" style="margin-bottom:10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+      <div class="fs-overline"><strong>COMPANY BACKGROUND</strong></div>
+    </div>
+    <p style="line-height:1.75;color:var(--text-secondary);">
+      <strong style="color:var(--text-primary);">{{ case.company }}</strong> — {{ case.incident }}
+    </p>
+  </div>
+
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+    <div class="flex items-center gap-sm" style="margin-bottom:10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="fs-overline"><strong>INVESTIGATION OBJECTIVE</strong></div>
+    </div>
+    <p style="line-height:1.75;color:var(--text-secondary);">{{ case.objective }}</p>
+    <p class="fs-mono" style="font-size:.72rem;color:var(--text-muted);margin-top:8px;">Every conclusion must be supported by the evidence you uncover in the stations below.</p>
+  </div>
+
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+    <div class="flex items-center gap-sm" style="margin-bottom:10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div class="fs-overline"><strong>RULES &amp; INSTRUCTIONS</strong></div>
+    </div>
+    <div class="fs-mono" style="font-size:.72rem;line-height:1.7;color:var(--text-secondary);">
+      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">01</span>Investigate the <strong style="color:var(--text-primary);">5 evidence stations</strong> in sequence via the Evidence Vault.</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">02</span>Each station requires a <strong style="color:var(--text-primary);">verified finding</strong> submitted through the workstation.</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">03</span>Up to <strong style="color:var(--text-primary);">5 attempts</strong> per station — flag the station after max attempts.</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">04</span>Use the toolbox panels to analyze artifacts: text, hex, strings, email, log, timeline, network.</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">05</span>Record investigator notes — they persist across refreshes.</div>
+      <div style="display:flex;gap:8px;"><span style="color:var(--accent);width:18px;">06</span>Complete the <strong style="color:var(--text-primary);">Final Incident Report</strong> and identify the persons involved.</div>
+    </div>
+  </div>
+
+  <!-- Evidence vault snapshot -->
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:18px;">
+    <div class="flex items-center justify-between" style="margin-bottom:14px;">
+      <div class="fs-overline"><strong>EVIDENCE VAULT</strong> — {{ case.stations|length }} STATIONS</div>
+      <div class="fs-chip violet">SEQUENTIAL</div>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+      {% for s in case.stations %}
+      {% set f = findings.get(s.id, {}) %}
+      {% set st = 'verified' if (f and f.get('status') == 'verified') else ('locked' if loop.index0 > 0 and not (findings.get(case.stations[loop.index0-1].id, {}).get('status') == 'verified') else 'opened') %}
+      <div class="vault-item vault-{{ st }}" style="padding:12px;cursor:default;pointer-events:none;">
+        <span class="vault-idx">{{ s.id }}</span>
+        <span class="vault-body">
+          <span class="vault-name">{{ s.name }}</span>
+          <span class="vault-meta">{{ s.domain }}</span>
+        </span>
+        <span class="vault-state">{{ st }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="text-center" style="margin-bottom:40px;">
+    <a href="{{ url_for('evidence', station_id=case.stations[0].id) }}" class="btn btn-primary btn-xl">
+      ENTER INVESTIGATION
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+</div>
+{% endblock %}

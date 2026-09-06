@@ -1,0 +1,70 @@
+{% extends "r1_admin_base.html" %}
+{% block title %}Team Detail - Cyber Puzzle Admin{% endblock %}
+{% block content %}
+<div class="admin-section-title">
+  <h2>Team Detail — {{ team.team_name }}</h2>
+  <p>Session {{ session.id }} · {{ session.status }} · Score {{ session.score }} · x/6</p>
+</div>
+<a href="{{ url_for('r1.r1_admin_teams') }}" class="btn btn-subtle btn-sm" style="margin-bottom:20px;">&larr; Back to teams</a>
+
+<div class="card" style="padding:20px;">
+  <div class="font-overline text-accent mb-md">ASSIGNED CHALLENGES &amp; LAB STATE</div>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th><th>Code</th><th>Title</th><th>Variant</th><th>Lab Type</th>
+          <th>Challenge Status</th><th>Lab Status</th>
+          <th>Lab Started</th><th>Lab Completed</th><th>Flag Revealed</th>
+          <th>Attempts</th><th>Correct Flags</th><th>Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assignments %}
+        <tr>
+          <td><span class="font-mono text-muted">{{ a.display_order }}</span></td>
+          <td><span class="font-mono">{{ a.challenge_code }}</span></td>
+          <td><span class="text-secondary">{{ a.title }}</span></td>
+          <td><span class="font-mono text-muted">{{ a.variant_code }}</span></td>
+          <td><span class="font-mono text-muted">{{ a.lab_type }}</span></td>
+          <td>
+            <span class="badge {{ 'badge-success' if a.status == 'COMPLETED' else 'badge-neutral' }}">{{ a.status }}</span>
+          </td>
+          <td>
+            <span class="badge {{ 'badge-cyan' if a.lab_status == 'LAB_COMPLETED' else ('badge-warning' if a.lab_status == 'IN_PROGRESS' else 'badge-neutral') }}">{{ a.lab_status }}</span>
+          </td>
+          <td><span class="font-mono text-muted">{{ a.lab_started_at or '—' }}</span></td>
+          <td><span class="font-mono text-cyan">{{ a.lab_completed_at or '—' }}</span></td>
+          <td><span class="font-mono {{ 'text-success' if a.flag_revealed else 'text-muted' }}">{{ 'YES' if a.flag_revealed else 'NO' }}</span></td>
+          <td><span class="font-mono text-primary">{{ a.total_attempts or 0 }}</span></td>
+          <td><span class="font-mono text-success">{{ a.solve_count or 0 }}</span></td>
+          <td><span class="font-mono text-primary">{{ a.points_awarded or 0 }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="padding:20px;margin-top:20px;">
+  <div class="font-overline text-accent mb-md">LAB EVENT LOG</div>
+  {% if events %}
+  <div class="table-wrapper">
+    <table class="table">
+      <thead><tr><th>Event</th><th>Detail</th><th>Occurred At (ms)</th></tr></thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td><span class="font-mono {{ 'text-success' if e.kind in ('lab_completed','flag_submitted') else ('text-warning' if e.kind == 'flag_revealed' else 'text-muted') }}">{{ e.kind }}</span></td>
+          <td><span class="text-secondary">{{ e.detail or '—' }}</span></td>
+          <td><span class="font-mono text-muted">{{ e.occurred_at }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">No lab events recorded for this team yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

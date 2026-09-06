@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Access - Cyber Puzzle</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+</head>
+<body>
+  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:44px 20px;">
+
+    <!-- Cinematic hacker scene (decorative background) -->
+    <div class="cyber-scene" aria-hidden="true">
+      <div class="cs-glows"></div>
+      <div class="cs-monitor cs-monitor-l"></div>
+      <div class="cs-monitor cs-monitor-r"></div>
+      <div class="cs-hood"></div>
+      <div class="cs-binary"></div>
+      <div class="cs-overlay"></div>
+    </div>
+
+    <div class="pub-auth" style="max-width:520px;">
+      <a href="{{ url_for('start') }}" class="hud-nav-link hud-btn-ghost" style="display:inline-flex;margin-bottom:16px;">&larr; BACK TO TEAM LOGIN</a>
+
+      <div class="pub-auth-card">
+        <div class="flex items-center gap-md mb-lg">
+          <div class="pub-nav-logo" style="width:48px;height:48px;font-size:15px;">R1</div>
+          <div>
+            <div class="hud-kicker" style="color:var(--hud-dim);">ROUND 1</div>
+            <h2 class="hud-h1" style="font-size:1.4rem;">Team Access</h2>
+          </div>
+        </div>
+
+        {% if error %}
+          <div style="background:rgba(255,176,32,0.08);border:1px solid #FFB020;padding:14px 16px;border-radius:10px;margin-bottom:20px;">
+            <span class="text-warning">{{ error }}</span>
+          </div>
+        {% endif %}
+
+        <div style="background:rgba(108,43,255,0.08);border:1px solid rgba(108,43,255,0.35);padding:14px 16px;border-radius:10px;margin-bottom:20px;">
+          <div class="hud-kicker" style="color:var(--hud-purple-lt);">ADMIN-MANAGED ACCESS</div>
+          <p class="hud-sub" style="margin-top:6px;font-size:0.875rem;line-height:1.7;">
+            Team accounts are provisioned by the event administrator. No public registration is
+            available. Log in with the <strong style="color:var(--hud-text);">Team Name</strong> and
+            <strong style="color:var(--hud-text);">Team ID</strong> provided for your team.
+          </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('r1.r1_login') }}">
+          <div style="margin-bottom:16px;">
+            <label class="pub-label">TEAM NAME</label>
+            <input type="text" name="team_name" class="pub-field" placeholder="e.g. Cyber Titans" required>
+          </div>
+          <div style="margin-bottom:20px;">
+            <label class="pub-label">TEAM ID</label>
+            <input type="text" name="team_id" class="pub-field" placeholder="e.g. CT2026-001" required>
+          </div>
+          <button type="submit" class="hud-btn btn-xl" style="width:100%;">LOGIN</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

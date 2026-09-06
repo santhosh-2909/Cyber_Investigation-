@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Cyber Detective{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237B2FFF'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold' font-family='monospace'>CD</text></svg>">
+</head>
+<body>
+  <div class="env" aria-hidden="true">
+    <div class="env-deep"></div>
+    <div class="env-scene"></div>
+    <div class="env-rain"></div>
+    <div class="env-neural" aria-hidden="true">
+      <div class="env-neural-core">
+        <span class="env-orbit orbit-a"></span><span class="env-orbit orbit-b"></span><span class="env-orbit orbit-c"></span>
+        <i class="env-node node-a"></i><i class="env-node node-b"></i><i class="env-node node-c"></i><i class="env-node node-d"></i><i class="env-node node-e"></i><i class="env-node node-f"></i>
+        <b class="env-link link-a"></b><b class="env-link link-b"></b><b class="env-link link-c"></b>
+      </div>
+    </div>
+    <div class="env-glow"></div>
+    <div class="env-grid"></div>
+    <div class="env-scan"></div>
+    <div class="env-vignette"></div>
+  </div>
+  {% if session.get('team') %}
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <a href="{{ url_for('dashboard') }}" class="topnav-brand">
+        <div class="topnav-brand-icon">CD</div>
+        <div class="topnav-brand-text">CYBER<span>DETECTIVE</span></div>
+      </a>
+
+      <div class="topnav-links">
+        <a href="{{ url_for('dashboard') }}" class="topnav-link {% if request.endpoint in ('dashboard','case_session') %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('case_selector') }}" class="topnav-link {% if request.endpoint == 'case_selector' or request.endpoint == 'case_study' or request.endpoint == 'evidence' or request.endpoint == 'puzzle_lab' or request.endpoint == 'challenge' %}active{% endif %}">Cases</a>
+        <a href="{{ url_for('evidence_board') }}" class="topnav-link {% if request.endpoint == 'evidence_board' %}active{% endif %}">Evidence</a>
+        <a href="{{ url_for('report') }}" class="topnav-link {% if request.endpoint == 'report' %}active{% endif %}">Report</a>
+        <a href="{{ url_for('scoreboard') }}" class="topnav-link {% if request.endpoint in ('scoreboard','score') %}active{% endif %}">Scoreboard</a>
+      </div>
+
+      <div class="topnav-right">
+        <div class="topnav-timer">
+          <div>
+            <div class="timer-label">Case Time {% if r2_timer and r2_timer.status == 'COMPLETED' %}· COMPLETED{% endif %}</div>
+            <div class="timer-value" id="case-timer"
+                 data-remaining-ms="{{ r2_timer.remaining_ms if r2_timer else 2700000 }}"
+                 data-status="{{ r2_timer.status if r2_timer else 'ACTIVE' }}">00:45:00</div>
+          </div>
+        </div>
+        <div class="topnav-team">
+          <div class="topnav-team-name">{{ team.name }}</div>
+          <div class="topnav-team-status">
+            <span class="status-dot active"></span>
+            ACTIVE
+          </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-subtle btn-sm" style="color:var(--text-dim);">Logout</a>
+      </div>
+    </div>
+  </nav>
+  {% endif %}
+
+  {% block body_class %}{% endblock %}
+  <main class="fs-stage">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+  <script>
+    /* Round 2 fixed 45-min countdown. Hits 0 -> server marks COMPLETED. */
+    (function () {
+      var el = document.getElementById('case-timer');
+      if (!el) return;
+      // app.js legacy count-up is disabled when countdown attributes exist.
+      var remaining = parseInt(el.dataset.remainingMs || '2700000', 10);
+      if (isNaN(remaining) || remaining < 0) remaining = 0;
+      var status = (el.dataset.status || 'ACTIVE').toUpperCase();
+      var endMs = Date.now() + remaining;
+      var finished = (status === 'COMPLETED') || remaining <= 0;
+      function pad(n){ return String(n).padStart(2,'0'); }
+      function render(ms){
+        if (ms < 0) ms = 0;
+        var h = Math.floor(ms/3600000),
+            m = Math.floor((ms%3600000)/60000),
+            s = Math.floor((ms%60000)/1000);
+        el.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+        if (ms <= 60000) { el.style.color = 'var(--danger, #ff4d5e)'; }
+        else if (ms <= 5*60000) { el.style.color = 'var(--warning, #ffb020)'; }
+      }
+      function finishRound(){
+        if (finished) return;
+        finished = true;
+        render(0);
+        fetch('{{ url_for("r2_timeup") }}', { method: 'POST' })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (d && d.redirect) { window.location.href = d.redirect; }
+            else { window.location.href = '{{ url_for("score") }}'; }
+          })
+          .catch(function(){ window.location.href = '{{ url_for("score") }}'; });
+      }
+      if (finished) { render(0); return; }
+      render(remaining);
+      setInterval(function(){
+        var rem = endMs - Date.now();
+        if (rem <= 0) { finishRound(); return; }
+        render(rem);
+      }, 1000);
+    })();
+  </script>
+  <script>
+    (function () {
+      var root = document.querySelector('.env-rain');
+      if (!root) return;
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var cols = window.innerWidth < 640 ? 5 : (window.innerWidth < 1100 ? 8 : 13);
+      var frag = document.createDocumentFragment();
+      var pick = ['#6C2BFF', '#7B2FFF', '#9B4DFF', '#B56CFF'];
+      for (var i = 0; i < cols; i++) {
+        var c = document.createElement('div');
+        c.className = 'er-col';
+        if (i % 2) c.classList.add('er-col-up');
+        c.style.left = ((Math.random() * 88) + 4) + '%';
+        c.style.fontSize = ((10 + Math.random() * 7).toFixed(1)) + 'px';
+        c.style.opacity = (0.10 + Math.random() * 0.20).toFixed(2);
+        var s = '';
+        var len = 36 + Math.floor(Math.random() * 26);
+        for (var j = 0; j < len; j++) {
+          s += (Math.random() < 0.5 ? '0' : '1');
+        }
+        var b1 = document.createElement('span');
+        b1.textContent = s;
+        b1.style.color = pick[Math.floor(Math.random() * pick.length)];
+        var b2 = b1.cloneNode(true);
+        c.appendChild(b1);
+        c.appendChild(b2);
+        if (!reduce) {
+          c.style.animationDuration = ((46 + Math.random() * 56).toFixed(0)) + 's';
+          c.style.animationDelay = (-Math.random() * 70).toFixed(1) + 's';
+        }
+        frag.appendChild(c);
+      }
+      root.appendChild(frag);
+    })();
+  </script>
+</body>
+</html>

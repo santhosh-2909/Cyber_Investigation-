@@ -1,0 +1,98 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Overview{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 &mdash; {{ r2.display_name }}</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">{{ r2.description }}</div>
+  </div>
+  <span class="ap-status-pill" style="background:rgba(108,43,255,0.12);color:var(--ap-accent4);">
+    {{ r2.status }}
+  </span>
+</div>
+
+<div class="ap-cards">
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Cases</span>
+    <span class="ap-stat-value accent">{{ stats.round2.cases }}</span>
+    <span class="ap-success" style="font-size:11px;">{{ stats.round2.published_cases }} published</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Investigation tasks</span>
+    <span class="ap-stat-value">{{ stats.round2.stations }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Evidence items</span>
+    <span class="ap-stat-value warning">{{ stats.round2.evidence }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Report persons</span>
+    <span class="ap-stat-value">{{ stats.round2.persons }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">R2 teams</span>
+    <span class="ap-stat-value accent">{{ stats.r2_teams }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">R2 active logins</span>
+    <span class="ap-stat-value success">{{ stats.round2_logins }}</span>
+  </div>
+</div>
+
+{% set presets = {'ACTIVE':'success', 'PAUSED':'warning', 'COMPLETED':'neutral', 'DRAFT':'muted', 'SCHEDULED':'neutral'} %}
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Round Control</h3></div>
+  <div class="ap-row">
+    {% for s in ['DRAFT','SCHEDULED','ACTIVE','PAUSED','COMPLETED'] %}
+    <button class="ap-btn {{ 'ghost' if s != r2.status else '' }}" onclick="setStatus('{{ s }}')">{{ s }}</button>
+    {% endfor %}
+  </div>
+  <p class="ap-muted" style="font-size:11px;margin:10px 0 0;">
+    Only <span class="ap-success">ACTIVE</span> / <span class="ap-neutral">SCHEDULED</span>
+    (with access enabled) accept Round 2 logins.
+  </p>
+</div>
+
+<div class="ap-grid-2" style="margin-top:18px;">
+  <div class="ap-panel" style="margin-top:0;">
+    <div class="ap-panel-head"><h3 class="ap-panel-title">Competition Params</h3></div>
+    <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><td>Timer</td><td class="cell-strong">{{ r2.timer_minutes }} minutes</td></tr>
+      <tr><td>Max task attempts</td><td class="cell-strong">{{ r2.max_attempts }}</td></tr>
+      <tr><td>Scoring mode</td><td class="cell-strong">{{ r2.scoring_mode }}</td></tr>
+      <tr><td>Access enabled</td><td class="cell-strong">{{ 'YES' if r2.access_enabled else 'NO' }}</td></tr>
+    </table>
+    </div>
+    <a href="{{ url_for('admin_r2_settings') }}" class="ap-btn sm ghost ap-mt">EDIT SETTINGS</a>
+  </div>
+  <div class="ap-panel" style="margin-top:0;">
+    <div class="ap-panel-head"><h3 class="ap-panel-title">Quick Links</h3></div>
+    <div class="ap-row">
+      <a href="{{ url_for('admin_r2_cases') }}" class="ap-btn sm ghost">Cases</a>
+      <a href="{{ url_for('admin_r2_tasks') }}" class="ap-btn sm ghost">Investigation Tasks</a>
+      <a href="{{ url_for('admin_r2_evidence') }}" class="ap-btn sm ghost">Evidence</a>
+      <a href="{{ url_for('admin_r2_validation') }}" class="ap-btn sm ghost">Validation</a>
+      <a href="{{ url_for('admin_r2_scoring') }}" class="ap-btn sm ghost">Scoring</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function setStatus(s) {
+    if (!confirm('Set Round 2 status to ' + s + '?')) return;
+    fetch('/admin/round2/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: s })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok) { apToast('Round 2 status: ' + s); setTimeout(function () { location.reload(); }, 400); }
+      else apToast(d.error || 'Failed', true);
+    });
+  }
+</script>
+{% endblock %}
