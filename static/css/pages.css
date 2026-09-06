@@ -241,20 +241,20 @@
 .login-card {
   position: relative;
   z-index: 1;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-strong);
+  background: rgba(8, 8, 23, 0.92);
+  border: 1px solid rgba(181, 108, 255, 0.28);
   border-radius: var(--radius-xl);
   padding: 36px;
   width: 100%;
   max-width: 440px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 0 40px rgba(108, 43, 255, 0.16);
 }
 
 .login-brand-icon {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent), #6D28D9);
+  background: linear-gradient(135deg, #9B4DFF, #6C2BFF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -263,7 +263,7 @@
   font-weight: 800;
   color: #fff;
   margin: 0 auto;
-  box-shadow: 0 0 24px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 24px rgba(155, 77, 255, 0.45);
 }
 
 .login-error {
@@ -416,4 +416,50 @@
   .login-status-bar { flex-direction: column; align-items: center; gap: 8px; }
   .countdown-value { font-size: 2rem; }
   .investigation-progress { overflow-x: auto; padding-bottom: 8px; }
+}
+
+
+@media (max-width: 768px) {
+  .hero-content { 
+    padding: 120px 20px 40px; 
+    text-align: center;
+  }
+  .hero-title { 
+    font-size: 2.8rem !important; 
+    line-height: 1.1;
+  }
+  .hero-description { 
+    font-size: 1rem; 
+    margin: 0 auto 30px;
+  }
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+  .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .forensic-visual {
+    padding: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ops-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+  .ops-card {
+    padding: 24px;
+  }
+  .login-card {
+    padding: 24px;
+    margin: 0 16px;
+  }
+  .login-status-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
 }

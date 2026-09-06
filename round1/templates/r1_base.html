@@ -34,8 +34,10 @@
       </div>
 
       <nav class="hud-center-nav">
+        <a href="{{ url_for('landing') }}" class="hud-nav-link">Home</a>
         <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-nav-link {% if request.endpoint == 'r1.r1_dashboard' %}active{% endif %}">Dashboard</a>
         <a href="{{ url_for('r1.r1_rules') }}" class="hud-nav-link {% if request.endpoint == 'r1.r1_rules' %}active{% endif %}">Rules</a>
+        <a href="{{ url_for('r1.r1_leaderboard') }}" class="hud-nav-link {% if request.endpoint == 'r1.r1_leaderboard' %}active{% endif %}">Leaderboard</a>
       </nav>
 
       <div class="hud-user">
@@ -71,14 +73,14 @@
         <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-side-item">
           <span class="hud-side-icon">&#9654;</span><span>Progress</span>
         </a>
-        <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-side-item">
+        <a href="{{ url_for('home') }}" class="hud-side-item">
           <span class="hud-side-icon">&#9679;</span><span>Profile</span>
         </a>
       </div>
       <div class="hud-side-section">
         <div class="hud-side-title">Session</div>
-        <div class="hud-side-item"><span class="hud-side-icon">&#9881;</span><span>Console</span></div>
-        <div class="hud-side-item"><span class="hud-side-icon">?</span><span>Help</span></div>
+        <a href="{{ url_for('r1.r1_rules') }}" class="hud-side-item {% if request.endpoint == 'r1.r1_rules' %}active{% endif %}"><span class="hud-side-icon">?</span><span>Help</span></a>
+        <a href="{{ url_for('r1.r1_leaderboard') }}" class="hud-side-item {% if request.endpoint == 'r1.r1_leaderboard' %}active{% endif %}"><span class="hud-side-icon">&#9881;</span><span>Console</span></a>
       </div>
     </aside>
 

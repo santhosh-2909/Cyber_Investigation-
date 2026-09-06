@@ -1119,20 +1119,57 @@ def case_selector():
 @app.route("/scoreboard")
 @login_required
 def scoreboard():
-    leaderboard = [
-        {"name": "Team Alpha", "round1": 1200, "round2": 640, "total": 1840, "active": False},
-        {"name": "Team Cyber", "round1": 1080, "round2": 640, "total": 1720, "active": True},
-        {"name": "Team Phantom", "round1": 990, "round2": 600, "total": 1590, "active": True},
-        {"name": "Team Delta", "round1": 860, "round2": 525, "total": 1385, "active": True},
-        {"name": "Team Echo", "round1": 720, "round2": 450, "total": 1170, "active": False},
-    ]
-    last_solves = [
-        {"team": "Team Cyber", "station": "S3 Document Metadata", "points": 100, "time": "21:02"},
-        {"team": "Team Alpha", "station": "S7 Cipher Chain", "points": 100, "time": "20:58"},
-        {"team": "Team Delta", "station": "S2 PCAP Exfil", "points": 100, "time": "20:51"},
-    ]
+    # Get dynamic data from admin_ops
+    r1_data = admin_ops.leaderboard()
+    r2_data = admin_ops.r2_leaderboard()
+    
+    # Merge data for the unified leaderboard view
+    # We'll use team_name as the key
+    merged = {}
+    for t in r1_data:
+        merged[t['team_name']] = {
+            "name": t['team_name'],
+            "round1": t.get('r1_score', 0),
+            "round2": 0,
+            "total": t.get('r1_score', 0),
+            "active": False,
+            "r1_done": t.get('r1_done'),
+            "r2_done": None
+        }
+    
+    for t in r2_data:
+        name = t['team_name']
+        if name not in merged:
+            merged[name] = {
+                "name": name,
+                "round1": 0,
+                "round2": t.get('total', 0),
+                "total": t.get('total', 0),
+                "active": False,
+                "r1_done": None,
+                "r2_done": t.get('completed_at')
+            }
+        else:
+            merged[name]["round2"] = t.get('total', 0)
+            merged[name]["total"] += t.get('total', 0)
+            merged[name]["r2_done"] = t.get('completed_at')
+
+    # Final sorting: Total score DESC, then earliest completion (using r2_done as primary tie-break)
+    leaderboard = sorted(
+        merged.values(), 
+        key=lambda x: (-x['total'], x['r2_done'] or float('inf'))
+    )
+    
+    # Mock some 'active' status based on current sessions if needed, 
+    # but for now we'll stick to the data.
+    for t in leaderboard:
+        t['active'] = False # Default
+        
+    last_solves = [] # This should normally come from a DB query of recent solves
+    
     return render_template("scoreboard.html", team=session["team"],
                            leaderboard=leaderboard, last_solves=last_solves)
+
 
 
 # ---------------------------------------------------------------------------
@@ -1987,8 +2024,9 @@ def admin_team_round_toggle(team_db_id, round_name):
     row = access.team_detail(team_db_id)
     if not row:
         return jsonify({"ok": False, "error": "Team not found."}), 404
-    target = not bool(row.get(round_name + "_enabled", 0))
-    admin_ops.set_round_access(team_db_id, round_name, target)
+    target = not bool(row.get("round1_enabled", 0))
+    admin_ops.set_round_access(team_db_id, "round1", target)
+        admin_ops.set_round_access(team_db_id, "round2", target)
     admin_ops.audit("admin", "%s team %s" % (
         "Enabled" if target else "Disabled", round_name), target=row["team_name"])
     return jsonify({"ok": True, "enabled": target})
@@ -1998,175 +2036,3 @@ def admin_team_round_toggle(team_db_id, round_name):
 @admin_required_api
 def admin_team_set_round_access_id(team_db_id, round_name):
     if round_name not in ("round1", "round2"):
-        return jsonify({"ok": False, "error": "Invalid round."}), 400
-    data = request.get_json(silent=True) or request.form
-    new_id = (data.get("access_id") or "").strip()
-    if not new_id:
-        return jsonify({"ok": False, "error": "Access ID is required."}), 400
-    ok, err = admin_ops.set_round_access_id(team_db_id, round_name, new_id)
-    if not ok:
-        return jsonify({"ok": False, "error": err}), 400
-    admin_ops.audit("admin", "Rotated %s access ID" % round_name,
-                    target="#%d" % team_db_id)
-    return jsonify({"ok": True})
-
-
-@app.route("/admin/teams/<int:team_db_id>/round/<round_name>/reset", methods=["POST"])
-def admin_team_round_reset(team_db_id, round_name):
-    if round_name not in ("round1", "round2"):
-        return jsonify({"ok": False, "error": "Invalid round."}), 400
-    ok = admin_ops.reset_team_round_progress(team_db_id, round_name)
-    if not ok:
-        return jsonify({"ok": False, "error": "Team not found."}), 404
-    admin_ops.audit("admin", "Reset %s progress" % round_name,
-                    target="#%d" % team_db_id)
-    return jsonify({"ok": True})
-
-
-@app.route("/admin/logins/clear", methods=["POST"])
-@admin_required_api
-def admin_login_clear():
-    data = request.get_json(silent=True) or request.form
-    team_db_id = data.get("team_db_id")
-    if not team_db_id:
-        return jsonify({"ok": False, "error": "Team required."}), 400
-    round_name = data.get("round_name")
-    if round_name in ("round1", "round2"):
-        admin_ops.clear_round_logins(int(team_db_id), round_name)
-    else:
-        access.clear_login_by_team(int(team_db_id))
-    return jsonify({"ok": True})
-
-
-@app.route("/admin/logins/clear-selected", methods=["POST"])
-@admin_required_api
-def admin_login_clear_selected():
-    data = request.get_json(silent=True) or request.form
-    ids = data.get("team_db_ids") or []
-    round_name = data.get("round_name")
-    admin_ops.clear_selected_round_logins(ids, round_name)
-    return jsonify({"ok": True})
-
-
-@app.route("/admin/logins/clear-all", methods=["POST"])
-@admin_required_api
-def admin_login_clear_all():
-    data = request.get_json(silent=True) or request.form
-    round_name = data.get("round_name")
-    cleared = admin_ops.clear_all_round_logins(round_name)
-    admin_ops.audit("admin", "Cleared %s logins" % (round_name or "all"),
-                    detail="%d session(s)" % cleared)
-    return jsonify({"ok": True})
-
-
-@app.route("/admin/teams/import", methods=["POST"])
-@admin_required_api
-def admin_teams_import():
-    data = request.get_json(silent=True) or request.form
-    round_name = data.get("round_name") or "round1"
-    result = admin_ops.import_teams(data.get("csv") or "", round_name)
-    if result.get("errors"):
-        return jsonify({"ok": False,
-                        "error": "Some rows failed: %s" % "; ".join(result["errors"][:8]),
-                        "result": result}), 400
-    admin_ops.audit("admin", "Imported teams", target=round_name,
-                    detail="%d imported" % result.get("imported", 0))
-    return jsonify({"ok": True, "result": result})
-
-
-@app.route("/admin/teams/export")
-@admin_required
-def admin_teams_export():
-    round_name = request.args.get("round") or "round1"
-    csv_text = admin_ops.export_teams(round_name)
-    resp = Response(csv_text, mimetype="text/csv")
-    resp.headers["Content-Disposition"] = \
-        "attachment; filename=teams_%s.csv" % round_name
-    return resp
-
-
-# ---------------------------------------------------------------------------
-# Admin: monitoring / audit / system
-# ---------------------------------------------------------------------------
-
-@app.route("/admin/monitoring")
-@admin_required
-def admin_monitoring():
-    sessions = admin_ops.live_monitoring()
-    stats = admin_ops.dashboard_stats()
-    return render_template("admin/monitoring.html", sessions=sessions, stats=stats)
-
-
-@app.route("/admin/audit-log")
-@admin_required
-def admin_audit_log():
-    entries = admin_ops.list_audit(250)
-    return render_template("admin/audit.html", entries=entries)
-
-
-@app.route("/admin/audit")
-@admin_required
-def admin_audit():
-    return redirect(url_for("admin_audit_log"))
-
-
-@app.route("/admin/system")
-@admin_required
-def admin_system():
-    stats = admin_ops.system_stats()
-    db_size = 0
-    dbpath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                          "round1", "round1.db")
-    try:
-        db_size = os.path.getsize(dbpath)
-    except OSError:
-        db_size = 0
-    return render_template("admin/system.html", stats=stats, db_size=db_size)
-
-
-@app.route("/admin/submissions")
-@admin_required
-def admin_submissions():
-    submissions = admin_ops.list_submissions(250)
-    return render_template("admin/submissions.html", submissions=submissions)
-
-
-@app.route("/admin/review")
-@admin_required
-def admin_review():
-    reports = admin_ops.list_r2_reviews()
-    return render_template("admin/review.html", reports=reports)
-
-
-@app.route("/admin/leaderboard")
-@admin_required
-def admin_leaderboard():
-    r1 = admin_ops.leaderboard()
-    r2 = admin_ops.r2_leaderboard()
-    return render_template("admin/leaderboard.html", leaderboard=r1, r2_leaderboard=r2)
-
-
-@app.route("/admin/content/round1")
-@admin_required
-def admin_content_round1():
-    return redirect(url_for("admin_r1_challenges"))
-
-
-@app.route("/admin/content/round2")
-@admin_required
-def admin_content_round2():
-    return redirect(url_for("admin_r2_cases"))
-
-
-# Register Round 1 (Cyber Puzzle) blueprint
-from round1.main import r1
-app.register_blueprint(r1)
-
-if __name__ == "__main__":
-    print("==============================================")
-    print(" CYBER DETECTIVE - FORENSIC INVESTIGATION APP")
-    print(" Running at: http://127.0.0.1:5000")
-    print("==============================================")
-    # Single localhost instance. debug=False so there is exactly ONE server
-    # process on exactly ONE port (127.0.0.1:5000).
-    app.run(host="127.0.0.1", port=5000, debug=False)

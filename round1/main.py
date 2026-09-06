@@ -88,14 +88,15 @@ def _rate_limit_exceeded(team_id):
 
 
 def _mark_expired(session_row):
-    """If the session has passed its deadline, flip it to EXPIRED."""
+    """If the session has passed its deadline, flip it to COMPLETED."""
     if session_row["status"] == "ACTIVE" and session_row["ends_at"] <= db.now_ms():
         conn = db.get_connection()
         try:
-            conn.execute("UPDATE round_sessions SET status='EXPIRED' WHERE id=?",
-                         (session_row["id"],))
+            conn.execute("UPDATE round_sessions SET status='COMPLETED', completed_at=? WHERE id=?",
+                         (db.now_ms(), session_row["id"]))
             conn.commit()
-            session_row["status"] = "EXPIRED"
+            session_row["status"] = "COMPLETED"
+            session_row["completed_at"] = db.now_ms()
         finally:
             conn.close()
     return session_row

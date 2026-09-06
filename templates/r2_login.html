@@ -32,6 +32,11 @@
       <a href="{{ url_for('landing') }}" class="hud-nav-link hud-btn-ghost" style="display:inline-flex;margin-bottom:16px;">&larr; BACK TO MAIN PAGE</a>
 
       <div class="pub-auth-card">
+        <div class="auth-switch">
+          <a href="{{ url_for('start') }}">TEAM LOGIN</a>
+          <a href="{{ url_for('r1.r1_login') }}">ROUND 1</a>
+          <a class="active" href="{{ url_for('r2_login') }}">ROUND 2</a>
+        </div>
         <div class="flex items-center gap-md mb-lg">
           <div class="pub-nav-logo" style="width:48px;height:48px;font-size:15px;">R2</div>
           <div>

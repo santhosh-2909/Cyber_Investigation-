@@ -765,3 +765,32 @@ html, body { overflow-x: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .vault-item, .tb-tab { transition: none; }
 }
+
+
+@media (max-width: 1024px) {
+  .fs-workstation {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+  .fs-pane {
+    width: 100% !important;
+  }
+  .fs-masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .fs-masthead .mh-right {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+@media (max-width: 640px) {
+  .fs-shell {
+    padding: 12px 12px 30px;
+  }
+  .fs-pane-head {
+    font-size: 10px;
+  }
+}

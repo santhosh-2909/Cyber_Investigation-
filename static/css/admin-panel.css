@@ -840,3 +840,36 @@ html {
   .ap-grid-2, .ap-grid-3 { grid-template-columns: 1fr; }
   .ap-topbar { padding: 10px 16px; }
 }
+
+/* -------------------------------- Responsive --------------------------------- */
+@media (max-width: 768px) {
+  .ap-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .ap-sidebar {
+    position: fixed !important;
+    left: -264px !important;
+    transition: left .3s ease !important;
+    z-index: 1000 !important;
+    width: 264px !important;
+    height: 100vh !important;
+  }
+  .ap-sidebar.open {
+    left: 0 !important;
+  }
+  .ap-mobile-toggle {
+    display: flex !important;
+  }
+  .ap-topbar {
+    padding: 12px 15px !important;
+  }
+  .ap-content {
+    padding: 15px !important;
+  }
+  .ap-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+}

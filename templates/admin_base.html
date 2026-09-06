@@ -120,9 +120,14 @@
 
     <!-- Main -->
     <div class="ap-main">
-      <header class="ap-topbar">
-        <div class="ap-row">
-          <span class="ap-topbar-title" id="apTopTitle">Overview</span>
+            <header class="ap-topbar">
+        <div class="ap-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div class="ap-row" style="display: flex; align-items: center; gap: 12px;">
+            <button class="ap-btn ghost sm ap-mobile-toggle" id="apMobileToggle" style="display: none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span class="ap-topbar-title" id="apTopTitle">Overview</span>
+          </div>
           <span class="ap-badge success" id="apRoundStatus">CONTROL ACTIVE</span>
         </div>
         <div class="ap-row">
@@ -146,6 +151,10 @@
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script>
     (function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+
       // Collapsible nav groups
       document.querySelectorAll('.ap-nav-group-toggle').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -184,7 +193,11 @@
       t.textContent = msg;
       t.className = 'ap-toast show' + (isError ? ' error' : '');
       clearTimeout(t._h);
-      t._h = setTimeout(function () { t.classList.remove('show'); }, 3600);
+      t._h = setTimeout(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ t.classList.remove('show'); }, 3600);
     }
 
     function ApCloseModal() {
@@ -203,15 +216,27 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      }).then(function (r) { return r.json().catch(function () { return {}; }); })
+      }).then(function (r) { return r.json().catch(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ return {}; }); })
         .then(function (d) {
           if (d && d.ok) {
             apToast('Saved');
-            setTimeout(function () { window.location.reload(); }, 400);
+            setTimeout(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ window.location.reload(); }, 400);
           } else {
             apToast((d && d.error) || 'Request failed.', true);
           }
-        }).catch(function () { apToast('Request failed.', true); });
+        }).catch(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ apToast('Request failed.', true); });
     }
   </script>
   {% block scripts %}{% endblock %}

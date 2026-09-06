@@ -449,7 +449,7 @@ def add_team(team_name, team_id, round1_access_id=None, round2_access_id=None):
             "INSERT INTO teams (team_id, team_name, participant_names, "
             "created_at, updated_at, round1_access_id, round2_access_id, "
             "round1_enabled, round2_enabled) VALUES (?,?,?,?,?,?,?,?,?)",
-            (team_id, team_name, "", now, now, round1_access_id, round2_access_id, 1, 0))
+            (team_id, team_name, "", now, now, round1_access_id, round2_access_id, 1, 1))
         conn.commit()
         return True, "Team created successfully."
     finally:

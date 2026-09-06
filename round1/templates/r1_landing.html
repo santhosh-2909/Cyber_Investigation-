@@ -43,7 +43,7 @@
             {% endif %}
             <a href="{{ url_for('r1.r1_logout') }}" class="hud-btn hud-btn-ghost btn-sm" style="color:var(--hud-muted);">Logout</a>
           {% else %}
-            <a href="{{ url_for('start') }}" class="hud-btn hud-btn-ghost btn-sm">TEAM LOGIN</a>
+            <a href="{{ url_for('r1.r1_login') }}" class="hud-btn hud-btn-ghost btn-sm">TEAM LOGIN</a>
           {% endif %}
           <a href="{{ url_for('r1.r1_admin_login') }}" class="hud-btn hud-btn-ghost btn-sm" style="color:var(--hud-muted);">Admin</a>
         </div>
@@ -75,8 +75,8 @@
             <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-btn btn-xl">GO TO DASHBOARD</a>
           {% endif %}
         {% else %}
-          <a href="{{ url_for('start') }}" class="hud-btn btn-xl">START THE PUZZLE</a>
-          <a href="{{ url_for('start') }}" class="pub-btn-secondary btn-xl">TEAM LOGIN</a>
+          <a href="{{ url_for('r1.r1_login') }}" class="hud-btn btn-xl">START THE PUZZLE</a>
+          <a href="{{ url_for('r1.r1_login') }}" class="pub-btn-secondary btn-xl">TEAM LOGIN</a>
         {% endif %}
       </div>
     </section>

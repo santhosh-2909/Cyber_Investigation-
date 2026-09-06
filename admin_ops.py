@@ -269,7 +269,7 @@ def create_round2_team(team_name, access_id):
             "INSERT INTO teams (team_id, team_name, participant_names, created_at, updated_at, "
             "round1_access_id, round2_access_id, round1_enabled, round2_enabled) "
             "VALUES (?,?,?,?,?,?,?,?,?)",
-            (access_id, team_name, "", now, now, access_id, access_id, 0, 1))
+            (access_id, team_name, "", now, now, access_id, access_id, 1, 1))
         conn.commit()
         return True, ""
     finally:
@@ -1216,7 +1216,7 @@ def leaderboard(limit=50):
             "AS r2_sessions "
             "FROM round_sessions rs JOIN teams t ON rs.team_id=t.id "
             "GROUP BY t.id "
-            "ORDER BY r1_score DESC, r1_solved DESC LIMIT ?", (int(limit),)).fetchall()
+            "ORDER BY r1_score DESC, r1_done ASC LIMIT ?", (int(limit),)).fetchall()
     finally:
         conn.close()
     return [dict(r) for r in rows]
@@ -1264,7 +1264,7 @@ def r2_leaderboard(limit=50):
             "COALESCE(p.completed_at, 0) AS completed_at "
             "FROM r2_progress p JOIN teams t ON p.team_id=t.id "
             "LEFT JOIN r2_cases c ON c.case_code=p.case_code "
-            "ORDER BY p.total DESC, p.updated_at ASC LIMIT ?", (int(limit),)).fetchall()
+            "ORDER BY p.total DESC, p.completed_at ASC LIMIT ?", (int(limit),)).fetchall()
     finally:
         conn.close()
     return [dict(r) for r in rows]
@@ -1490,7 +1490,7 @@ def _import_one_team(team_name, access_id, round_name):
                 "INSERT INTO teams (team_id, team_name, participant_names, created_at, "
                 "updated_at, round1_access_id, round2_access_id, round1_enabled, round2_enabled) "
                 "VALUES (?,?,?,?,?,?,?,?,?)",
-                (access_id, team_name, "", now, now, access_id, access_id, 0, 1))
+                (access_id, team_name, "", now, now, access_id, access_id, 1, 1))
             conn.commit()
             return True, "ok"
         dup2 = conn.execute(

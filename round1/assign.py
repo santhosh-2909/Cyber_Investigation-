@@ -134,7 +134,7 @@ def create_assignment(team_id, round_name="Round 1 - Cyber Puzzle: Mixed Fundame
 
         # 6. Create the session (started/ends timestamps)
         start = db.now_ms()
-        duration_ms = 30 * 60 * 1000
+        duration_ms = int(admin_ops.get_round_settings("round1").get("timer_minutes", 30)) * 60 * 1000
         end = start + duration_ms
 
         cur = conn.execute(

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237B2FFF'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold' font-family='monospace'>CD</text></svg>">
 </head>
 <body>
@@ -35,6 +36,7 @@
       </a>
 
       <div class="topnav-links">
+        <a href="{{ url_for('home') }}" class="topnav-link {% if request.endpoint == 'home' %}active{% endif %}">Ops</a>
         <a href="{{ url_for('dashboard') }}" class="topnav-link {% if request.endpoint in ('dashboard','case_session') %}active{% endif %}">Dashboard</a>
         <a href="{{ url_for('case_selector') }}" class="topnav-link {% if request.endpoint == 'case_selector' or request.endpoint == 'case_study' or request.endpoint == 'evidence' or request.endpoint == 'puzzle_lab' or request.endpoint == 'challenge' %}active{% endif %}">Cases</a>
         <a href="{{ url_for('evidence_board') }}" class="topnav-link {% if request.endpoint == 'evidence_board' %}active{% endif %}">Evidence</a>
