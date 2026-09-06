@@ -8,10 +8,17 @@ competition. Flake8/PEP8-friendly, thread-safe per-request connections.
 import os
 import sqlite3
 import time
+import shutil
 
 # DB file lives inside the round1 package directory
 DB_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(DB_DIR, "round1.db")
+
+if os.environ.get("VERCEL"):
+    TMP_DB_PATH = "/tmp/round1.db"
+    if not os.path.exists(TMP_DB_PATH) and os.path.exists(DB_PATH):
+        shutil.copy2(DB_PATH, TMP_DB_PATH)
+    DB_PATH = TMP_DB_PATH
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;

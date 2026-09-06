@@ -110,15 +110,18 @@ def pick_case():
     if not pool:
         pool = [c for c in CASE_LIST if c]
     counter = 0
+    counter_path = os.path.join(BASE_DIR, "data", "case_counter.txt")
+    if os.environ.get("VERCEL"):
+        counter_path = "/tmp/case_counter.txt"
     try:
-        with open(os.path.join(BASE_DIR, "data", "case_counter.txt"), "r") as f:
+        with open(counter_path, "r") as f:
             counter = int(f.read().strip() or "0")
     except Exception:
         counter = 0
     selected = pool[counter % len(pool)]
     counter += 1
     try:
-        with open(os.path.join(BASE_DIR, "data", "case_counter.txt"), "w") as f:
+        with open(counter_path, "w") as f:
             f.write(str(counter))
     except Exception:
         pass
