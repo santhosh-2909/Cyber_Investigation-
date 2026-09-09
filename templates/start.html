@@ -7,9 +7,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
 </head>
-<body>
-  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:40px 20px;">
+<body class="hx-frame">
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">ENCRYPTED</span>
+    </div>
+    <div class="hx-sec-center hx-seg"><span class="hx-cursor">AUTH GATE</span></div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+    </div>
+  </div>
+  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:56px 20px;">
     <div class="cyber-scene" aria-hidden="true">
       <div class="cs-glows"></div>
       <div class="cs-hood"></div>
@@ -45,6 +58,16 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M17.6 13.41c.04-.47.04-.94 0-1.41l1.7-1.33-1.7-2.94-2.02.65a7 7 0 0 0-2.4-1.4L13 3.59H9.02l-.18 2.16a7 7 0 0 0-2.4 1.4l-2.02-.65-1.7 2.94 1.7 1.33c-.05.47-.05.94 0 1.41l-1.7 1.33 1.7 2.94 2.02-.65a7 7 0 0 0 2.4 1.4l.18 2.16h3.96l.18-2.16a7 7 0 0 0 2.4-1.4l2.02.65 1.7-2.94-1.7-1.33z"/></svg>
             <span class="text-secondary" style="font-size:0.85rem;">Team access is <strong>provisioned by the administrator</strong>. Use the Team Name and Team ID issued for your team — no public registration.</span>
           </div>
+        </div>
+
+        <!-- Terminal security verification -->
+        <div class="hx-verify" style="margin-bottom:20px;">
+          <div class="hx-vlock">🔒</div>
+          <div class="hx-vtxt">
+            <div class="hx-vtitle">Secure Auth Gate</div>
+            <div class="hx-vsub">token handshake · server-side validation</div>
+          </div>
+          <span class="hx-vbadge">ENCRYPTED</span>
         </div>
 
         <form method="POST" action="{{ url_for('start') }}">

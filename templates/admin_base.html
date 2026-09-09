@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Admin Control - Cyber Detective{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-panel.css') }}?v=4">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}?v=4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%238B5CF6'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold' font-family='monospace'>CD</text></svg>">
   {% block head %}{% endblock %}
 </head>
 <body>
+  <div class="hx-crt" aria-hidden="true"></div>
   <div class="ap-layout ap-colors">
     <!-- Sidebar -->
     <aside class="ap-sidebar">
@@ -129,6 +131,7 @@
             <span class="ap-topbar-title" id="apTopTitle">Overview</span>
           </div>
           <span class="ap-badge success" id="apRoundStatus">CONTROL ACTIVE</span>
+          <span class="hx-badge" style="margin-left:8px;">PRIVILEGED</span>
         </div>
         <div class="ap-row">
           <span class="ap-mono ap-muted" style="font-size:11px;">CYBER DETECTIVE 2026</span>

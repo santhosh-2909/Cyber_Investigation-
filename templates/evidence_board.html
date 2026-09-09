@@ -10,6 +10,7 @@
       <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
         <span class="fs-chip violet">{{ case.code }}</span>
         <span class="fs-chip {% if stage == 'complete' %}ok{% else %}warn{% endif %}">{{ stage|upper }}</span>
+        <span class="hx-badge">CUSTODY OK</span>
       </div>
       <div class="mh-title">CASE OVERVIEW</div>
       <div class="mh-sub">{{ case.title }} — {{ team.name }}</div>

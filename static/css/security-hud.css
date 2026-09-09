@@ -1,0 +1,496 @@
+/* ============================================================
+   SECURITY HUD — "Secured Hacker View" enhancement layer
+   Keeps the existing purple neon aesthetic and ADDS:
+     · green matrix accents (hacker terminal vibe)
+     · CRT scanline / phosphor-glow overlays
+     · terminal boot-log + security verification panels
+     · security badges (SECURE / ENCRYPTED / VERIFIED / GATED)
+     · "behind-the-firewall" frame chrome
+   Loaded AFTER design-system / forensics / cyber-hud so it
+   layers cleanly without breaking existing functionality.
+   ============================================================ */
+
+:root {
+  /* Matrix / phosphor green (hacker terminal) accents */
+  --hx-green:       #00FF66;
+  --hx-green-dim:   #00CC52;
+  --hx-green-deep:  #0A3D1F;
+  --hx-green-bg:    rgba(0, 255, 102, 0.08);
+  --hx-green-glow:  rgba(0, 255, 102, 0.28);
+  --hx-green-line:  rgba(0, 255, 102, 0.22);
+
+  /* Amber for warnings on the secure strip */
+  --hx-amber:       #FFB020;
+  --hx-red:         #FF4D6D;
+
+  /* Terminal chrome */
+  --hx-krack:       #02050B;   /* near-black terminal bg */
+  --hx-flicker:     rgba(0, 255, 102, 0.05);
+
+  /* Security vignette / CRT frame */
+  --hx-crt: rgba(6, 18, 12, 1);
+  --hx-crt-soft: rgba(8, 24, 16, 0.42);
+}
+
+/* ============================================================
+   1. CRT SCANLINE + PHOSPHOR OVERLAY (global, subtle)
+   ============================================================ */
+.hx-crt {
+  position: fixed;
+  inset: 0;
+  z-index: 2147480000;  /* above everything decorative, below modals/toasts */
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--hx-flicker) 0px,
+      var(--hx-flicker) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  mix-blend-mode: screen;
+  opacity: 0.32;
+}
+.hx-crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, transparent 50%, var(--hx-crt-soft) 100%);
+  opacity: 0.4;
+}
+/* faint phosphor bloom in the center of the screen */
+.hx-phosphor {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(60% 60% at 50% 42%, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+  opacity: 0.45;
+}
+
+/* subtle CRT corner rounding on the whole viewport frame */
+.hx-frame::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147480001;
+  pointer-events: none;
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.75), inset 0 0 14px rgba(0, 255, 102, 0.05);
+}
+
+/* ============================================================
+   2. SECURITY STRIP (top-most "behind the firewall" bar)
+   Shows a persistent secure-connection HUD across the site.
+   ============================================================ */
+.hx-secstrip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hx-green);
+  background: rgba(2, 5, 11, 0.86);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--hx-green-line);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+.hx-secstrip .hx-sec-left,
+.hx-secstrip .hx-sec-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.hx-secstrip .hx-pipe { color: rgba(0,255,102,0.28); }
+.hx-secstrip .hx-blink { animation: hx-blink 1.6s step-start infinite; }
+
+/* live clock / cursor block */
+.hx-cursor::before {
+  content: '▊';
+  margin-right: 6px;
+  animation: hx-blink 1s step-start infinite;
+  color: var(--hx-green);
+}
+
+/* status bulk segments */
+.hx-seg { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.hx-seg .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hx-green); box-shadow: 0 0 6px var(--hx-green); }
+.hx-seg .dot.amber { background: var(--hx-amber); box-shadow: 0 0 6px var(--hx-amber); }
+.hx-seg .dot.red { background: var(--hx-red); box-shadow: 0 0 6px var(--hx-red); }
+
+/* hide on very small screens — the boot/corner status remains */
+@media (max-width: 720px) {
+  .hx-secstrip .hx-sec-center { display: none; }
+  .hx-secstrip { letter-spacing: 0.08em; }
+}
+
+/* ============================================================
+   3. SECURITY BADGE (small inline lock/shield tag)
+   ============================================================ */
+.hx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--hx-green-line);
+  background: var(--hx-green-bg);
+  color: var(--hx-green);
+  white-space: nowrap;
+}
+.hx-badge::before {
+  content: '◈';
+  font-size: 9px;
+  text-shadow: 0 0 6px currentColor;
+}
+.hx-badge.purple { color: #B56CFF; border-color: rgba(181,108,255,0.35); background: rgba(139,92,246,0.10); }
+.hx-badge.amber { color: var(--hx-amber); border-color: rgba(255,176,32,0.35); background: rgba(255,176,32,0.08); }
+.hx-badge.red { color: var(--hx-red); border-color: rgba(255,77,109,0.35); background: rgba(255,77,109,0.08); }
+.hx-badge.cyan { color: #35DCEC; border-color: rgba(53,220,236,0.35); background: rgba(53,220,236,0.08); }
+.hx-badge.neutral { color: #8A84AD; border-color: rgba(138,132,173,0.3); background: rgba(138,132,173,0.08); }
+
+/* ============================================================
+   4. TERMINAL BOOT-LOG PANEL  (typewriter security lines)
+   ============================================================ */
+.hx-term {
+  background: var(--hx-krack);
+  border: 1px solid var(--hx-green-line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(0, 255, 102, 0.06), inset 0 0 40px rgba(0, 255, 102, 0.03);
+}
+.hx-term-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #04101A;
+  border-bottom: 1px solid var(--hx-green-line);
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hx-green);
+}
+.hx-term-dots { display: flex; gap: 5px; margin-right: 6px; }
+.hx-term-dots i { width: 9px; height: 9px; border-radius: 50%; background: #1b2b23; border: 1px solid var(--hx-green-line); }
+.hx-term-dots i:nth-child(1) { background: #FF4D6D; border-color: #FF4D6D; }
+.hx-term-dots i:nth-child(2) { background: #FFB020; border-color: #FFB020; }
+.hx-term-dots i:nth-child(3) { background: var(--hx-green); border-color: var(--hx-green); }
+.hx-term-title { flex: 1; }
+.hx-term-title .feed { color: var(--hx-green-dim); margin-right: 6px; }
+
+.hx-term-body {
+  padding: 12px 14px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7EEF9E;
+}
+.hx-term-body .hx-ln { display: block; white-space: nowrap; overflow: hidden; }
+.hx-term-body .hx-ln .hx-ts { color: #2B8A4F; margin-right: 8px; }
+.hx-term-body .hx-ln .hx-ok { color: var(--hx-green); }
+.hx-term-body .hx-ln .hx-ok::before { content: '✔ '; }
+.hx-term-body .hx-ln .hx-warn { color: var(--hx-amber); }
+.hx-term-body .hx-ln .hx-warn::before { content: '! '; }
+.hx-term-body .hx-ln .hx-err { color: var(--hx-red); }
+.hx-term-body .hx-ln .hx-purple { color: #B56CFF; }
+.hx-term-body .hx-ln .hx-dim { color: #4E6B58; }
+.hx-term-body .hx-cursor-line::after {
+  content: '▋';
+  color: var(--hx-green);
+  animation: hx-blink 0.9s step-start infinite;
+  margin-left: 2px;
+}
+
+/* reveal lines one-by-one on load */
+.hx-term-typing .hx-ln {
+  opacity: 0;
+  animation: hx-line-in 0.28s ease forwards;
+}
+.hx-term-typing .hx-ln:nth-child(1) { animation-delay: 0.05s; }
+.hx-term-typing .hx-ln:nth-child(2) { animation-delay: 0.45s; }
+.hx-term-typing .hx-ln:nth-child(3) { animation-delay: 0.85s; }
+.hx-term-typing .hx-ln:nth-child(4) { animation-delay: 1.25s; }
+.hx-term-typing .hx-ln:nth-child(5) { animation-delay: 1.65s; }
+.hx-term-typing .hx-ln:nth-child(6) { animation-delay: 2.05s; }
+.hx-term-typing .hx-ln:nth-child(7) { animation-delay: 2.45s; }
+.hx-term-typing .hx-ln:nth-child(8) { animation-delay: 2.85s; }
+.hx-term-typing .hx-ln:nth-child(9) { animation-delay: 3.25s; }
+.hx-term-typing .hx-ln:nth-child(10) { animation-delay: 3.65s; }
+
+@keyframes hx-line-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hx-blink {
+  50% { opacity: 0; }
+}
+
+/* ============================================================
+   4a. DASHBOARD SESSION-LOG WIDGET  (collapsible corner terminal)
+   Fixed bottom-left on participant pages. Collapsed by default to a
+   slim status strip; expands to a readable log. Keeps the hacker
+   feel without blocking content on small screens.
+   ============================================================ */
+.hx-dashlog {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 950;
+  width: 318px;
+  max-width: calc(100vw - 28px);
+  font-family: var(--font-mono, monospace);
+  background: var(--hx-krack);
+  border: 1px solid var(--hx-green-line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(0, 255, 102, 0.07), 0 8px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.hx-dashlog summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--hx-green);
+  text-transform: uppercase;
+  user-select: none;
+}
+.hx-dashlog summary::-webkit-details-marker { display: none; }
+.hx-dashlog summary .dot {
+  width: 7px; height: 7px; flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--hx-green);
+  box-shadow: 0 0 8px var(--hx-green);
+  animation: hx-blink 1.8s step-start infinite;
+}
+.hx-dashlog summary .dl-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hx-dashlog summary .dl-toggle { color: var(--hx-green-dim); transition: transform 0.18s ease; }
+.hx-dashlog[open] summary .dl-toggle { transform: rotate(180deg); }
+.hx-dashlog .dl-body {
+  padding: 10px 12px;
+  border-top: 1px solid var(--hx-green-line);
+  background: rgba(2, 5, 11, 0.55);
+  font-size: 10px;
+  line-height: 1.7;
+  color: #7EEF9E;
+}
+.hx-dashlog .dl-body .hx-ln { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hx-dashlog .dl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px dashed rgba(0, 255, 102, 0.12);
+}
+.hx-dashlog .dl-row:last-child { border-bottom: none; }
+.hx-dashlog .dl-row .dl-pill {
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: center;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--hx-green-line);
+  color: var(--hx-green);
+  background: var(--hx-green-bg);
+}
+.hx-dashlog .dl-row .dl-txt { font-size: 9px; color: #8AB79A; line-height: 1.5; }
+.hx-dashlog .dl-row .dl-txt b { color: var(--hx-green); }
+@media (max-width: 720px) {
+  .hx-dashlog { left: 10px; right: 10px; bottom: 10px; width: auto; }
+  .hx-dashlog summary { padding: 7px 10px; }
+}
+
+/* ============================================================
+   5. SECURE VERIFICATION CARD (auth / gate pages)
+   A compact lockup showing live "channel secured" checkmarks.
+   ============================================================ */
+.hx-verify {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--hx-green-line);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(0,255,102,0.05), rgba(0,255,102,0.01));
+  color: var(--hx-green);
+  font-family: var(--font-mono, monospace);
+}
+.hx-verify .hx-vlock {
+  width: 34px; height: 34px; flex-shrink: 0;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--hx-green-line);
+  background: rgba(0,255,102,0.08);
+  font-size: 16px;
+  color: var(--hx-green);
+  box-shadow: 0 0 12px rgba(0,255,102,0.15);
+}
+.hx-verify .hx-vtxt {
+  flex: 1;
+  min-width: 0;
+}
+.hx-verify .hx-vtitle {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hx-verify .hx-vsub {
+  font-size: 10px;
+  color: #4E6B58;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+.hx-verify .hx-vbadge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--hx-green-line);
+  background: var(--hx-green-bg);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   6. GREEN MATRIX ACCENT (text, borders, glows)
+   ============================================================ */
+.hx-text { color: var(--hx-green) !important; }
+.hx-bg { background: var(--hx-green-bg) !important; }
+.hx-border { border-color: var(--hx-green-line) !important; }
+
+/* glow to emphasize a primary panel / button in matrix green */
+.hx-glow-green {
+  box-shadow: 0 0 18px rgba(0,255,102,0.18), 0 0 0 1px var(--hx-green-line);
+}
+.hx-btn-green {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 22px; border-radius: 9px;
+  font-family: var(--font-mono, monospace); font-size: 12px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  border: 1px solid var(--hx-green);
+  background: linear-gradient(180deg, rgba(0,255,102,0.16), rgba(0,255,102,0.04));
+  color: var(--hx-green); cursor: pointer; text-decoration: none;
+  transition: all 0.18s ease;
+  box-shadow: 0 0 14px rgba(0,255,102,0.18);
+  white-space: nowrap;
+}
+.hx-btn-green:hover { background: rgba(0,255,102,0.16); box-shadow: 0 0 22px rgba(0,255,102,0.35); color: var(--hx-green); }
+
+/* ============================================================
+   7. "HACKER PAGE" TECHNICAL FRAME KIT
+   corner brackets / circuit marks for panels that should feel
+   like a secured workstation.
+   ============================================================ */
+.hx-panel-tag {
+  position: absolute;
+  top: 8px; left: 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hx-green-dim);
+  opacity: 0.8;
+}
+.hx-corner {
+  position: relative;
+}
+.hx-corner::before,
+.hx-corner::after {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  border-color: var(--hx-green-line);
+  border-style: solid;
+  pointer-events: none;
+}
+.hx-corner::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.hx-corner::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+/* admission data row (k/v) for gated-feel panels */
+.hx-kv { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; font-family: var(--font-mono, monospace); font-size: 10px; border-bottom: 1px dashed var(--hx-green-line); }
+.hx-kv:last-child { border-bottom: none; }
+.hx-kv .k { color: #4E6B58; letter-spacing: 0.1em; text-transform: uppercase; }
+.hx-kv .v { color: var(--hx-green); font-weight: 700; }
+
+/* thin horizontal rule divider for terminal-break sections */
+.hx-hr { height: 1px; background: linear-gradient(90deg, transparent, var(--hx-green-line), transparent); margin: 14px 0; border: none; }
+
+/* ============================================================
+   8. REDUCED MOTION / RESPONSIVE
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .hx-blink, .hx-cursor::before,
+  .hx-term-typing .hx-ln,
+  .hx-term-body .hx-cursor-line::after { animation: none !important; }
+  .hx-term-typing .hx-ln { opacity: 1; }
+}
+
+/* ============================================================
+   9. LAYOUT ALIGNMENT FOR INTEGRATED PAGES
+   When a sticky topnav follows the fixed security strip, push it
+   down so it sits below the strip instead of under it.
+   ============================================================ */
+.hud-topnav {
+  top: 22px !important;
+}
+.hud-sidebar {
+  top: calc(62px + 22px) !important;
+  height: calc(100vh - 62px - 22px) !important;
+}
+@media (max-width: 768px) {
+  .hud-sidebar {
+    top: calc(62px + 22px) !important;
+  }
+}
+
+/* Participant site (base.html) topnav + sidebar follow the strip */
+.topnav {
+  top: 22px !important;
+}
+.layout-sidebar {
+  top: calc(var(--nav-height) + 22px) !important;
+  height: calc(100vh - var(--nav-height) - 22px) !important;
+}
+@media (max-width: 768px) {
+  .layout-sidebar {
+    top: calc(var(--nav-height) + 22px) !important;
+  }
+}
+
+/* Public landing / auth navs are static-flow; give them room under the strip */
+.pub-nav, .front-nav {
+  margin-top: 22px;
+}
+

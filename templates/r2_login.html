@@ -8,9 +8,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
 </head>
-<body>
-  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:44px 20px;">
+<body class="hx-frame">
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">FORENSIC LAB</span>
+    </div>
+    <div class="hx-sec-center hx-seg"><span class="hx-cursor">WORKSTATION AUTH</span></div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">NODE <span class="hx-blink">OK</span></span>
+    </div>
+  </div>
+  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:60px 20px;">
 
     <div class="env" aria-hidden="true">
       <div class="env-deep"></div><div class="env-scene"></div><div class="env-rain"></div>
@@ -58,6 +71,15 @@
             <strong style="color:var(--hud-text);">Round 2 Access ID</strong> provisioned by the event
             administrator to enter Round 2 and open your assigned investigation case.
           </p>
+        </div>
+
+        <div class="hx-verify" style="margin-bottom:20px;">
+          <div class="hx-vlock">🔒</div>
+          <div class="hx-vtxt">
+            <div class="hx-vtitle">Evidence Vault · Secured</div>
+            <div class="hx-vsub">chain of custody · sequential unlock</div>
+          </div>
+          <span class="hx-vbadge">GATED</span>
         </div>
 
         <form method="POST" action="{{ url_for('r2_login') }}">

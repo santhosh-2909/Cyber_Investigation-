@@ -4,47 +4,68 @@
   <title>Cyber Challenge 2026</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
 </head>
-<body>
+<body class="hx-frame">
+<div class="hx-crt" aria-hidden="true"></div>
+<div class="hx-secstrip" aria-hidden="true">
+  <div class="hx-sec-left">
+    <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+    <span class="hx-pipe">|</span>
+    <span class="hx-seg">TLS 1.3</span>
+  </div>
+  <div class="hx-sec-center hx-seg"><span class="hx-cursor">ENCRYPTED SESSION</span></div>
+  <div class="hx-sec-right">
+    <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+    <span class="hx-pipe">|</span>
+    <span class="hx-seg">NODE <span class="hx-blink">OK</span></span>
+  </div>
+</div>
 <main class="front">
+  <!-- Background scene layer -->
   <div class="cyber-scene" aria-hidden="true">
     <div class="cs-glows"></div>
     <div class="cs-hood"></div>
     <div class="cs-binary"></div>
     <div class="cs-overlay"></div>
   </div>
-  <div class="binary-rain-full" aria-hidden="true">
-    <span style="--d:-1s">E70439A4110946595795D7F27C4DCCEE</span>
-    <span style="--d:-4s">B3AEB6329E1356279813183A27F55E66</span>
-    <span style="--d:-2s">4FAC2D36115A2E9CD07F4E48EC10391B</span>
-    <span style="--d:-5s">D1D1E924B9BADFF82C6B246460446FF3</span>
-    <span style="--d:-3s">710A6277DF680D3ADE431838E8FA6FCC</span>
-    <span style="--d:-6s">8F3186C5C028D3789F1452FBD2F6C71C</span>
-    <span style="--d:-1s">D17F2D4E6EA0E4D6CDC56AC89E8C80B4</span>
-    <span style="--d:-4s">F3FB15797110EFEFF9EB12DC5BF57C07</span>
-    <span style="--d:-7s">23B0DF99C478B53ECD74FD465CDCD42D</span>
-    <span style="--d:-2s">BB375BAC3AFFA84BC8C8E1070B409162</span>
-    <span style="--d:-8s">BFCD3A057689F39FB8B3095D6D1C2A58</span>
-    <span style="--d:-3s">7BB6B1944456F95845066A21B0368479</span>
-    <span style="--d:-5s">90F890D5FA6B673744F0C83A434FA9CA</span>
-    <span style="--d:-9s">370361E42DE84C3899A6760BE52874C2</span>
-    <span style="--d:-2s">248049A3E9930DE412A4333FD23669F</span>
-    <span style="--d:-6s">F4DD2F0BFD239FD905135F824207F45D</span>
-    <span style="--d:-1s">26D8BE2F625CEAFBC773E49B2899F86C</span>
-    <span style="--d:-4s">9F9BA5FFCFF650BB4B9F5BF43854C868</span>
-    <span style="--d:-7s">3EABA67CB8A3DB8C7CFABFD5977283A1</span>
-    <span style="--d:-3s">DEE759274F9EF93D52BBCB98B4C09C7F</span>
+
+  <!-- Purple wireframe neural globe -->
+  <div class="neural-globe" aria-hidden="true">
+    <span class="ng-orbit o1"></span>
+    <span class="ng-orbit o2"></span>
+    <span class="ng-orbit o3"></span>
+    <span class="ng-core"></span>
   </div>
-  <div class="neural-wrap" aria-hidden="true"><div class="neural-core"><span class="neural-orbit o1"></span><span class="neural-orbit o2"></span><span class="neural-orbit o3"></span><i class="neural-node n1"></i><i class="neural-node n2"></i><i class="neural-node n3"></i><i class="neural-node n4"></i><i class="neural-node n5"></i><i class="neural-node n6"></i><b class="neural-link l1"></b><b class="neural-link l2"></b><b class="neural-link l3"></b></div></div>
-  <div class="case-visual" aria-hidden="true"><div class="case-file"><div class="case-tab">CLASSIFIED</div><div class="case-title">SECURITY<br>CASE FILE</div><div class="case-lines"></div><div class="case-stamp">SECURE<br>OPS</div><div class="case-lock"></div></div></div>
-  <aside class="front-status panel-right"><b>SYSTEM STATUS</b><br><em>◆ PLATFORM ONLINE</em><em>◆ R1 READY</em><em>◆ R2 READY</em></aside>
+
+  <!-- Case file visual -->
+  <div class="case-visual" aria-hidden="true">
+    <div class="case-file">
+      <div class="case-tab">CLASSIFIED</div>
+      <div class="case-title">CASE FILE<br>CYBER 2026</div>
+      <div class="case-lines"></div>
+      <div class="case-stamp">DIGITAL<br>EVIDENCE</div>
+      <div class="case-lock"></div>
+    </div>
+  </div>
+
+  <!-- Sparse purple binary rain -->
+  <div class="matrix-rain" aria-hidden="true">
+    {% for col in range(20) %}
+    {% set glyph = '01' if col % 2 == 0 else '10' %}
+    {% set head = '0' if col % 3 == 0 else '1' %}
+    <div class="mcol" style="left:{{ col * 5.2 }}%; --fall:{{ (9 + (col * 37) % 13) }}s; --delay:{{ '%.2f'|format(-(col * 1.1) % 10) }}s;">
+      <span class="mhead">{{ head }}</span>
+      <span class="mbody">{{ glyph * 120 }}</span>
+    </div>
+    {% endfor %}
+  </div>
 
   <div class="front-inner">
     <nav class="front-nav">
       <a class="front-brand" href="{{ url_for('landing') }}">◈ CYBER<b>CHALLENGE</b></a>
       <div class="front-links">
         <a href="#mission">MISSION</a>
-        <a href="#ops">HOW TO ENTER</a>
         <a href="{{ url_for('scoreboard') }}">LEADERBOARD</a>
         <a href="{{ url_for('r1.r1_rules') }}">RULES</a>
         <a class="front-login" href="{{ url_for('start') }}">LOGIN</a>
@@ -56,7 +77,12 @@
         <div class="eyebrow">CYBER INVESTIGATION CHALLENGE · 2026</div>
         <h1>THINK &gt; INVESTIGATE<br><strong>SOLVE</strong> &gt; SECURE</h1>
         <p>Enter a Kali-inspired command center built for codebreakers, programmers, and digital investigators. Select your operation to authenticate with the credentials issued for that round.</p>
-        <div class="command"><span>ROUND 01</span><i>→</i><strong>ROUND 02</strong><i>→</i><span>LEADERBOARD</span></div>
+        <div class="command" style="margin-bottom:22px;"><span>ROUND 01</span><i>→</i><strong>ROUND 02</strong><i>→</i><span>LEADERBOARD</span></div>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+          <span class="hx-badge neutral">ACCESS PROVISIONED</span>
+          <span class="hx-badge cyan">SESSION SECURE</span>
+          <span class="hx-badge">FLAG VETTED</span>
+        </div>
         <div class="round-buttons">
           <a class="round-btn" href="{{ url_for('r1.r1_login') }}">
             <span>ROUND 1<small>MIXED FUNDAMENTALS</small></span><span>→</span>
@@ -69,32 +95,20 @@
     </section>
   </div>
 
-  <section class="ops-strip" id="ops">
-    <div class="ops-grid">
-      <article class="ops-card">
-        <div class="ops-k">01 · ACCESS</div>
-        <h3>TEAM CREDENTIALS</h3>
-        <p>Team access is provisioned by the administrator. Use the Team Name and Team ID issued for your team — no public registration.</p>
-      </article>
-      <article class="ops-card">
-        <div class="ops-k">02 · ROUND 1</div>
-        <h3>CYBER PUZZLE</h3>
-        <p>12 domains. 6 challenges. 30 minutes. Every team receives a unique, randomized set of six technical challenges drawn from twelve cyber fundamentals categories.</p>
-      </article>
-      <article class="ops-card">
-        <div class="ops-k">03 · ROUND 2</div>
-        <h3>FORENSIC WORKSTATION</h3>
-        <p>Sign in with the Team Name and Round 2 Access ID provisioned by the event administrator to open your assigned investigation case.</p>
-      </article>
-    </div>
-  </section>
-
   <div class="front-inner" style="padding-top:0;">
     <footer class="front-bottom">
       <span>GOOD HACKERS MAKE A SAFER WORLD</span>
-      <span>SCROLL TO EXPLORE · 01 / 02</span>
+      <span>CYBER CHALLENGE 2026</span>
       <a href="{% if is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('r1.r1_admin_login') }}{% endif %}">ADMIN CONSOLE ↗</a>
     </footer>
   </div>
 </main>
+<style>
+  @media (max-width: 980px) {
+    .case-visual, .neural-globe { display: none; }
+  }
+  @media (max-width: 720px) {
+    .hx-secstrip .hx-sec-center { display: none; }
+  }
+</style>
 </body></html>

@@ -7,9 +7,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
 </head>
-<body>
-  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:40px 20px;">
+<body class="hx-frame">
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">R1 AUTH</span>
+    </div>
+    <div class="hx-sec-center hx-seg"><span class="hx-cursor">CHALLENGE GATE</span></div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+    </div>
+  </div>
+  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:56px 20px;">
 
     <!-- Cinematic hacker scene (decorative background) -->
     <div class="cyber-scene" aria-hidden="true">
@@ -43,6 +56,15 @@
             <span class="text-warning">{{ error }}</span>
           </div>
         {% endif %}
+
+        <div class="hx-verify" style="margin-bottom:20px;">
+          <div class="hx-vlock">🔒</div>
+          <div class="hx-vtxt">
+            <div class="hx-vtitle">Challenge Gate · Secured</div>
+            <div class="hx-vsub">server-side validation · attempt-locked</div>
+          </div>
+          <span class="hx-vbadge">GATED</span>
+        </div>
 
         <form method="POST" action="{{ url_for('r1.r1_login') }}">
           <div style="margin-bottom:16px;">

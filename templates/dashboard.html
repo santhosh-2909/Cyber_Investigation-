@@ -12,6 +12,7 @@
         <span class="fs-chip violet">{{ case.code }}</span>
         <span class="fs-chip {% if stage == 'complete' %}ok{% else %}warn{% endif %}">{{ stage|upper }}</span>
         <span class="fs-chip dim">TEAM {{ team.team_id|upper }}</span>
+        <span class="hx-badge">SECURE</span>
       </div>
       <div class="mh-title" style="font-size:1.45rem;margin-top:4px;">{{ case.title }}</div>
       <div class="mh-sub">{{ team.name }} · Captain: {{ team.captain }}</div>

@@ -13,6 +13,7 @@
         <span class="fs-chip violet">CYBER CHALLENGE 2026</span>
         <span class="fs-chip ok">ONE LOGIN · BOTH ROUNDS</span>
         <span class="fs-chip dim">TEAM {{ team.team_id|upper }}</span>
+        <span class="hx-badge">SESSION SECURE</span>
       </div>
       <div class="mh-title" style="font-size:1.45rem;margin-top:4px;">OPERATIONS CENTER</div>
       <div class="mh-sub">Welcome back, {{ team.name }} · Squad: {{ team.name }}</div>
@@ -35,6 +36,14 @@
         START ROUND 1
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </a>
+    </div>
+
+    <!-- Secure verification strip -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);">
+      <span class="hx-badge">⚙ USER {{ team.team_id|upper }}</span>
+      <span class="hx-badge cyan">AUTH {{ 'VERIFIED' if team else 'PENDING' }}</span>
+      <span class="hx-badge purple">ROUND 1 {{ r1_stage|upper|replace('_',' ') }}</span>
+      <span class="hx-badge neutral">NODE CONNECTED</span>
     </div>
   </div>
 

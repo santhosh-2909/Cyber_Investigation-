@@ -8,9 +8,28 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237B2FFF'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold' font-family='monospace'>CD</text></svg>">
 </head>
-<body>
+<body class="hx-frame">
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-phosphor" aria-hidden="true"></div>
+
+  <!-- Persistent secured-connection HUD strip -->
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">ENCRYPTED</span>
+    </div>
+    <div class="hx-sec-center hx-seg" id="hx-clock">SYNC 00:00:00 UTC</div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">NODE <span class="hx-blink">OK</span></span>
+    </div>
+  </div>
+
   <div class="env" aria-hidden="true">
     <div class="env-deep"></div>
     <div class="env-scene"></div>
@@ -33,6 +52,7 @@
       <a href="{{ url_for('dashboard') }}" class="topnav-brand">
         <div class="topnav-brand-icon">CD</div>
         <div class="topnav-brand-text">CYBER<span>DETECTIVE</span></div>
+        <span class="hx-badge" style="margin-left:10px;">SECURE LINK</span>
       </a>
 
       <div class="topnav-links">
@@ -63,6 +83,35 @@
       </div>
     </div>
   </nav>
+
+  <!-- Session verification log (collapsible corner terminal) -->
+  <details class="hx-dashlog">
+    <summary>
+      <span class="dot"></span>
+      <span class="dl-label">Session Verification Log</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">NODE OK</span>
+      <span class="dl-toggle">▾</span>
+    </summary>
+    <div class="dl-body">
+      <div class="dl-row">
+        <span class="dl-pill">CHANNEL</span>
+        <span class="dl-txt">TLS-1.3 established · <b>encrypted</b> · team <b>{{ team.name }}</b></span>
+      </div>
+      <div class="dl-row">
+        <span class="dl-pill">AUTH</span>
+        <span class="dl-txt">credentials <b>verified</b> · session token minted</span>
+      </div>
+      <div class="dl-row">
+        <span class="dl-pill">CASE</span>
+        <span class="dl-txt">evidence chain <b>intact</b> · audit log append</span>
+      </div>
+      <div class="dl-row">
+        <span class="dl-pill">FIREWALL</span>
+        <span class="dl-txt">ingress rules <b>blocked</b> · zero anomalies</span>
+      </div>
+    </div>
+  </details>
   {% endif %}
 
   {% block body_class %}{% endblock %}
@@ -72,6 +121,18 @@
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}
+  <script>
+    (function () {
+      var hc = document.getElementById('hx-clock');
+      if (!hc) return;
+      function pad(n){ return String(n).padStart(2,'0'); }
+      function tick(){
+        var d = new Date();
+        hc.textContent = 'SYNC ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + ' UTC';
+      }
+      tick(); setInterval(tick, 1000);
+    })();
+  </script>
   <script>
     /* Round 2 fixed 45-min countdown. Hits 0 -> server marks COMPLETED. */
     (function () {

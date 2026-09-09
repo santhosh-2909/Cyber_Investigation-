@@ -7,9 +7,23 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2322D3EE'/><text x='16' y='22' text-anchor='middle' fill='%23060A12' font-size='15' font-weight='bold' font-family='monospace'>R1</text></svg>">
 </head>
-<body>
+<body class="hx-frame">
+<div class="hx-crt" aria-hidden="true"></div>
+<div class="hx-phosphor" aria-hidden="true"></div>
+<div class="hx-secstrip" aria-hidden="true">
+  <div class="hx-sec-left">
+    <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+    <span class="hx-pipe">|</span>
+    <span class="hx-seg">R1 LAB</span>
+  </div>
+  <div class="hx-sec-center hx-seg"><span class="hx-cursor">CHALLENGE NODE</span></div>
+  <div class="hx-sec-right">
+    <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+  </div>
+</div>
 <div class="hud-stage">
 
   <!-- Cinematic hacker scene (decorative background) -->

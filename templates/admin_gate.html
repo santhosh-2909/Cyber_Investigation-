@@ -7,8 +7,19 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
 </head>
-<body>
+<body class="hx-frame">
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>PRIVILEGED ACCESS</span>
+    </div>
+    <div class="hx-sec-center hx-seg"><span class="hx-cursor">ADMIN GATE</span></div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+    </div>
+  </div>
   <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;">
 
     <!-- Cinematic hacker scene (decorative background) -->
@@ -31,11 +42,13 @@
           </div>
         {% endif %}
         <form method="POST" action="{{ url_for('admin_dashboard') }}">
+          <div class="hx-hr" style="margin-top:0;"></div>
           <div style="margin-bottom:20px;">
             <label class="pub-label">PASSWORD</label>
             <input type="password" name="password" class="pub-field" required autofocus autocomplete="current-password">
           </div>
           <button type="submit" class="hud-btn btn-lg" style="width:100%;">UNLOCK DASHBOARD</button>
+          <p class="hx-kv" style="margin-top:16px;border-bottom:none;justify-content:center;font-size:9px;"><span class="k">session :: privileged · audit logged</span></p>
         </form>
       </div>
     </div>
