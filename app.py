@@ -664,8 +664,12 @@ def verified_count(case, findings):
 
 @app.route("/")
 def landing():
-    # Keep an authenticated participant inside the round they entered.
+    # Keep an authenticated participant inside the round they entered, or send
+    # a both-rounds unified team straight to the Operations Center hub.
     if access.is_logged_in():
+        unified_rounds = session.get("unified_rounds") or []
+        if "round1" in unified_rounds and "round2" in unified_rounds:
+            return redirect(url_for("home"))
         if session.get("active_round") == "round1":
             return redirect(url_for("r1.r1_dashboard"))
         return redirect(url_for("dashboard"))
@@ -689,16 +693,20 @@ def r2_login():
 
 @app.route("/home")
 def home():
-    """Return participants to the dashboard for their active round."""
+    """Return participants to the Operations Center (both rounds) or their
+    active round's dashboard."""
     auth = access.validate_participant()
     if auth is None:
         return redirect(url_for("start"))
-    if session.get("active_round") == "round1":
+    unified_rounds = session.get("unified_rounds") or []
+    is_both_rounds = "round1" in unified_rounds and "round2" in unified_rounds
+    if session.get("active_round") == "round1" and not is_both_rounds:
         return redirect(url_for("r1.r1_dashboard"))
-    if session.get("active_round") == "round2":
+    if session.get("active_round") == "round2" and not is_both_rounds:
         return redirect(url_for("dashboard"))
 
-    # This fallback is retained for legacy sessions without an active round.
+    # Both-rounds unified session (or a legacy session without an active round):
+    # render the ONE LOGIN · BOTH ROUNDS Operations Center hub.
     profile = unify.get_round1_profile()
     r1_session = unify.get_round1_session()
     r1_stage = unify.round1_stage()
@@ -726,13 +734,14 @@ def start():
     """Unified TEAM LOGIN (Team Name + Team ID only).
 
     Unauthenticated teams cannot self-register. A team can only sign in when
-    it was first created/authorized by an administrator.
+    it was first created/authorized by an administrator. One sign-in opens
+    BOTH rounds (Round 1 + Round 2) for the team.
     """
     notice = access.pop_login_notice()
     if request.method == "POST":
         team_name = request.form.get("team_name", "").strip()
         team_id = request.form.get("team_id", "").strip()
-        ok, error = access.participant_login(team_name, team_id)
+        ok, error = access.participant_login_unified(team_name, team_id)
         if not ok:
             return render_template("start.html", error=error or notice)
         return redirect(url_for("home"))
@@ -754,7 +763,7 @@ def login():
     """Backward-compatible POST handler for the unified team login."""
     team_name = request.form.get("team_name", "").strip()
     team_id = request.form.get("team_id", "").strip()
-    ok, error = access.participant_login(team_name, team_id)
+    ok, error = access.participant_login_unified(team_name, team_id)
     if not ok:
         return render_template("start.html", error=error)
     return redirect(url_for("home"))

@@ -170,6 +170,8 @@ def r1_register_rules_ack():
 
 @r1.route("/r1/login", methods=["GET", "POST"])
 def r1_login():
+    if get_current_team() is not None:
+        return redirect(url_for("r1.r1_dashboard"))
     if request.method == "POST":
         team_name = request.form.get("team_name", "").strip()
         team_id_input = request.form.get("team_id", "").strip()

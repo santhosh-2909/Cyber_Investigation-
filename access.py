@@ -32,7 +32,10 @@ import admin_ops
 # ---------------------------------------------------------------------------
 
 # Flask session key holding the server-issued participant token.
+# Round 2 uses its own token when the team signed in through the unified
+# ONE LOGIN · BOTH ROUNDS flow (one ACTIVE row per round).
 SESSION_TOKEN_KEY = "ptoken"
+SESSION_TOKEN_KEY_R2 = "ptoken_r2"
 
 # Round 1 admin session key (existing, authenticates against the admins table).
 SESSION_ADMIN_KEY = "r1_admin"
@@ -41,6 +44,7 @@ SESSION_ADMIN_KEY = "r1_admin"
 # invalidation. Admin keys are intentionally NOT included.
 PARTICIPANT_SESSION_KEYS = (
     SESSION_TOKEN_KEY,
+    SESSION_TOKEN_KEY_R2,
     "r1_team",
     "r1_rules_ack",
     "r1_profile",
@@ -53,6 +57,7 @@ PARTICIPANT_SESSION_KEYS = (
     "brief_viewed",
     "challenges_solved",
     "active_round",
+    "unified_rounds",
     "r2_started_at",
     "r2_ends_at",
     "r2_status",
@@ -193,11 +198,51 @@ def participant_login(team_name, access_id, round_name="round1"):
     return True, None
 
 
+def participant_login_unified(team_name, access_id):
+    """Validate a team ONCE (TEAM LOGIN) and open BOTH round sessions.
+
+    ONE TEAM LOGIN · BOTH ROUNDS: the same sign-in grants access to Round 1
+    and Round 2. The Team ID credential validates the team; sessions are then
+    opened for every enabled + currently-open round (round1 and/or round2).
+
+    Returns (ok: bool, error: str | None).
+    """
+    team = get_team_by_credentials(team_name, access_id)
+    if team is None:
+        return False, "Invalid team name or team ID."
+    if not team.get("is_active", 1):
+        return False, "This team is currently unavailable."
+    opened = []
+    for rn, enabled_col in (("round1", "round1_enabled"),
+                            ("round2", "round2_enabled")):
+        if team.get(enabled_col, 0) and admin_ops.round_open(rn):
+            opened.append(rn)
+    if not opened:
+        return False, "No round is currently open for this team."
+    for rn in opened:
+        _open_session(team, rn)
+    s = _session()
+    s["unified_rounds"] = opened
+    s["active_round"] = "round1" if "round1" in opened else "round2"
+    return True, None
+
+
+def _build_team_dict(team):
+    """Round-2 presentation dict built from a teams row (used by sessions)."""
+    return {
+        "name": team.get("team_name"),
+        "team_id": team.get("team_id"),
+        "captain": team.get("participant_names") or "",
+    }
+
+
 def _open_session(team, round_name):
     """Persist an ACTIVE participant login row and seed the Flask session.
 
-    Only one active session is allowed per team: any other active login for
-    the same team is revoked first (the newest login wins).
+    Round 1 and Round 2 each keep their own ACTIVE participant_sessions row so
+    one sign-in (TEAM LOGIN) can open BOTH rounds: the row for round_name is
+    (re)created under its round-specific session token, and the cross-round
+    session state is seeded once.
     """
     conn = db.get_connection()
     try:
@@ -218,14 +263,24 @@ def _open_session(team, round_name):
         conn.close()
 
     s = _session()
-    # Round 1 session key (existing).
+    # Store the token under the round-specific key so validate_participant can
+    # authorize either round independently from a single sign-in.
+    if round_name == "round2":
+        s[SESSION_TOKEN_KEY_R2] = token
+        if not s.get(SESSION_TOKEN_KEY):
+            s[SESSION_TOKEN_KEY] = token
+    else:
+        s[SESSION_TOKEN_KEY] = token
+
+    # Round 1 session keys (existing).
     s["r1_team"] = team["id"]
     s["r1_profile"] = {
         "id": team["id"],
         "team_id": team["team_id"],
         "team_name": team["team_name"],
     }
-    # Round 2 session keys (existing).
+    # Round 2 session keys (existing). 'team' is the presentation dict the
+    # Round 2 templates use; built here so the unified hub renders it.
     s["team"] = {
         "name": team["team_name"],
         "team_id": team["team_id"],
@@ -236,7 +291,6 @@ def _open_session(team, round_name):
     s["persons"] = {}
     s["notes"] = {}
     s["attempts"] = {}
-    s[SESSION_TOKEN_KEY] = token
     s["active_round"] = round_name
     # Round 2 countdown: fixed 45-min limit (admin setting, default 45).
     # Started at login; expiry marks the round COMPLETED server-side.
@@ -266,23 +320,40 @@ def validate_participant(round_name=None):
     * the token maps to an ACTIVE participant_sessions row,
     * the linked team still exists and is enabled.
 
+    With the unified ONE LOGIN · BOTH ROUNDS flow a team holds one ACTIVE row
+    per round, each under its own token. When round_name is supplied the
+    round-specific token (SESSION_TOKEN_KEY_R2 for round2, SESSION_TOKEN_KEY
+    otherwise) is used, so either round can be authorized independently.
+
     If any check fails the participant's session keys are wiped and a flag is
     stored so the login page can show an appropriate notice. As a lightweight
     heartbeat the last_seen timestamp is refreshed on each valid request.
     """
     s = _session()
-    token = s.get(SESSION_TOKEN_KEY)
+    token = None
+    if round_name == "round2":
+        token = s.get(SESSION_TOKEN_KEY_R2) or s.get(SESSION_TOKEN_KEY)
+    elif round_name == "round1":
+        token = s.get(SESSION_TOKEN_KEY)
+    else:
+        token = s.get(SESSION_TOKEN_KEY) or s.get(SESSION_TOKEN_KEY_R2)
     if not token:
-        return None
-    if round_name and s.get("active_round") != round_name:
         return None
     conn = db.get_connection()
     try:
-        row = conn.execute(
-            "SELECT ps.status AS ps_status, ps.token, t.* "
-            "FROM participant_sessions ps "
-            "JOIN teams t ON ps.team_id = t.id "
-            "WHERE ps.token = ?", (token,)).fetchone()
+        if round_name:
+            row = conn.execute(
+                "SELECT ps.status AS ps_status, ps.token, t.* "
+                "FROM participant_sessions ps "
+                "JOIN teams t ON ps.team_id = t.id "
+                "WHERE ps.token = ? AND ps.round_name = ?",
+                (token, round_name)).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT ps.status AS ps_status, ps.token, t.* "
+                "FROM participant_sessions ps "
+                "JOIN teams t ON ps.team_id = t.id "
+                "WHERE ps.token = ?", (token,)).fetchone()
     finally:
         conn.close()
 
@@ -291,6 +362,11 @@ def validate_participant(round_name=None):
         _clear_participant_session()
 
     if row is None:
+        # A round-specific query that finds no row simply means the participant
+        # is not signed into that round — NOT a revoked session. Wiping here
+        # would nuke a round1-only team just for hitting a round2-only route.
+        if round_name:
+            return None
         _invalidate("session_ended_by_admin")
         return None
     d = dict(row)
@@ -300,7 +376,7 @@ def validate_participant(round_name=None):
     if not d.get("is_active", 1):
         _invalidate("session_team_unavailable")
         return None
-    active_round = s.get("active_round") or d.get("round_name")
+    active_round = round_name or s.get("active_round") or d.get("round_name")
     if active_round == "round1" and not d.get("round1_enabled", 0):
         _invalidate("session_team_unavailable")
         return None
@@ -338,14 +414,19 @@ def validate_participant(round_name=None):
 
 
 def participant_logout():
-    """Mark the current participant login CLEARED and wipe session keys."""
+    """Mark the current participant logins CLEARED and wipe session keys.
+
+    A unified (both-rounds) sign-in holds one token per round, so every
+    token present in the session is revoked.
+    """
     s = _session()
-    token = s.get(SESSION_TOKEN_KEY)
-    if token:
+    tokens = {t for t in (s.get(SESSION_TOKEN_KEY), s.get(SESSION_TOKEN_KEY_R2)) if t}
+    if tokens:
         conn = db.get_connection()
         try:
-            conn.execute("UPDATE participant_sessions SET status='CLEARED' "
-                         "WHERE token=?", (token,))
+            for token in tokens:
+                conn.execute("UPDATE participant_sessions SET status='CLEARED' "
+                             "WHERE token=?", (token,))
             conn.commit()
         finally:
             conn.close()
