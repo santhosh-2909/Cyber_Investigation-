@@ -12,3 +12,5 @@ nohup.out
 .vscode/
 .vercel
 .env*
+pyproject.toml
+uv.lock
