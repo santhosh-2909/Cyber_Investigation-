@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Final Incident Report{% endblock %}
+{% block content %}
+<div class="card">
+    <h1 style="font-size:24px;">🧠 Final Incident Report</h1>
+    <p class="muted">Identify the persons involved by name in the input fields below. Support each identification with evidence.</p>
+</div>
+
+<form method="POST">
+    <div class="card">
+        <h2>🕵️ WHO DONE IT? — Identify the Persons</h2>
+        <p class="muted" style="font-size:13px;margin:6px 0 12px;">Enter the name of each person. A suspect roster is hinted in the case narrative and evidence.</p>
+        {% for person in case.persons %}
+        {% set prev = persons.get(person.key, {}) %}
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+            <div style="font-weight:700;">{{ person.role }}</div>
+            <div class="muted" style="font-size:13px;margin:4px 0 10px;">Clue: {{ person.clue }}</div>
+            <input type="text" name="person_{{ person.key }}" value="{{ prev.get('value','') }}" placeholder="Enter the person's name..."
+                style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:15px;margin-bottom:8px;">
+            <textarea name="evidence_{{ person.key }}" rows="2" placeholder="Supporting evidence pointing to this person..."
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:13px;resize:vertical;">{{ prev.get('evidence','') }}</textarea>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h2>📝 Investigation Details</h2>
+        <div style="margin-bottom:14px;">
+            <label class="muted" style="font-weight:600;display:block;margin-bottom:6px;">1. Initial Entry Point</label>
+            <textarea name="entry_point" rows="2" placeholder="How did the attacker enter the organization?" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px;resize:vertical;">{{ session.get('report',{}).get('entry_point','') }}</textarea>
+        </div>
+        <div style="margin-bottom:14px;">
+            <label class="muted" style="font-weight:600;display:block;margin-bottom:6px;">2. Attack Timeline</label>
+            <textarea name="timeline" rows="3" placeholder="Reconstruct the sequence of events." style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px;resize:vertical;">{{ session.get('report',{}).get('timeline','') }}</textarea>
+        </div>
+        <div>
+            <label class="muted" style="font-weight:600;display:block;margin-bottom:6px;">3. Final Conclusion</label>
+            <textarea name="conclusion" rows="4" placeholder="Explain the complete attack chain using supporting evidence." style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px;resize:vertical;">{{ session.get('report',{}).get('conclusion','') }}</textarea>
+        </div>
+    </div>
+
+    <div style="text-align:center;margin-top:16px;">
+        <button type="submit" class="btn green" style="padding:14px 28px;font-size:15px;">Submit Report & View Score →</button>
+    </div>
+</form>
+{% endblock %}

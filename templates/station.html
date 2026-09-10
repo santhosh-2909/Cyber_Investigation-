@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Station {{ station.id }} - {{ station.name }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('dashboard') }}" style="font-size:14px;">← Back to Evidence Room</a>
+<div class="card" style="margin-top:14px;">
+    <span class="tag">{{ station.id }} · {{ station.domain }}</span>
+    <h1 style="margin-top:10px;font-size:23px;">{{ station.name }}</h1>
+    <p class="muted">{{ station.desc }}</p>
+</div>
+
+<div class="card">
+    <h2>🗂️ Evidence</h2>
+    <p style="margin:8px 0 12px;" class="muted">Download the evidence artifact for this station:</p>
+    <a href="{{ url_for('download_evidence', filename=station.evidence) }}" class="btn ghost">
+        📥 Download: {{ station.evidence }}
+    </a>
+</div>
+
+<div class="card">
+    <h2>🔍 Question</h2>
+    <p style="margin-top:8px;line-height:1.6;"><b>{{ station.question }}</b></p>
+</div>
+
+<div class="card">
+    <h2>✍️ Submit Your Finding</h2>
+    <form id="finding-form" style="margin-top:12px;">
+        <input type="hidden" name="station_id" value="{{ station.id }}">
+        <input type="text" id="finding-value" name="value" required placeholder="Enter the answer / finding..."
+            style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:15px;margin-bottom:12px;">
+        <button type="submit" class="btn">Submit Finding</button>
+    </form>
+    <div id="result" style="margin-top:16px;font-weight:700;display:none;"></div>
+    <div id="hint-area" style="margin-top:16px;"></div>
+</div>
+
+<div style="text-align:center;margin-top:16px;">
+    <button class="btn ghost" id="hint-btn" style="display:inline-block;">💡 Hint (deducts points)</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const stationId = {{ station.id|tojson }};
+const hintText = {{ station.hint|tojson }};
+
+document.getElementById('finding-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const value = document.getElementById('finding-value').value;
+    const res = await fetch('/api/submit', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({station_id: stationId, value: value})
+    });
+    const data = await res.json();
+    const div = document.getElementById('result');
+    div.style.display = 'block';
+    if (data.correct) {
+        div.style.color = '#2ecc71';
+        div.textContent = '✅ Evidence Verified — Correct finding!';
+    } else {
+        div.style.color = '#ff5c5c';
+        div.textContent = '❌ Finding Incorrect — Try again.';
+    }
+});
+
+document.getElementById('hint-btn').addEventListener('click', () => {
+    const area = document.getElementById('hint-area');
+    area.innerHTML = '<div style="background:var(--panel2);border:1px solid var(--amber);border-radius:8px;padding:12px;">💡 <b>Hint:</b> ' + hintText + '</div>';
+    document.getElementById('hint-btn').style.display = 'none';
+});
+</script>
+{% endblock %}

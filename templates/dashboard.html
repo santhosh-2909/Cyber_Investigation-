@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - {{ case.title }}{% endblock %}
+{% block content %}
+<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <div>
+        <span class="tag">{{ case.code }}</span>
+        <h1 style="margin-top:10px;font-size:24px;">{{ case.title }}</h1>
+        <p class="muted">{{ case.company }}</p>
+    </div>
+    <div style="text-align:right;">
+        <p class="muted" style="font-size:13px;">Team: <b style="color:var(--text)">{{ team.name }}</b></p>
+        <p class="muted" style="font-size:13px;">Captain: <b style="color:var(--text)">{{ team.captain }}</b></p>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <a href="{{ url_for('case_study') }}" style="color:inherit;">
+        <div class="card" style="min-height:150px;">
+            <div style="font-size:30px;">📁</div>
+            <h2 style="margin-top:10px;">Case File</h2>
+            <p class="muted" style="font-size:14px;">Read the narrated story, incident details, and investigation objective.</p>
+        </div>
+    </a>
+    <div class="card" style="min-height:150px;">
+        <div style="font-size:30px;">🗂️</div>
+        <h2 style="margin-top:10px;">Evidence Room</h2>
+        <p class="muted" style="font-size:14px;">Analyze the 5 evidence stations below to uncover verified findings.</p>
+    </div>
+</div>
+
+<h2 style="margin:22px 0 12px;">Evidence Room — 5 Stations</h2>
+{% for s in case.stations %}
+<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+        <span class="tag">{{ s.id }} · {{ s.domain }}</span>
+        <h3 style="margin-top:8px;">{{ s.name }}</h3>
+        <p class="muted" style="font-size:14px;">{{ s.desc }}</p>
+    </div>
+    <a href="{{ url_for('evidence', station_id=s.id) }}" class="btn">Investigate →</a>
+</div>
+{% endfor %}
+
+<div style="text-align:center;margin-top:20px;">
+    <a href="{{ url_for('report') }}" class="btn green" style="padding:14px 26px;font-size:15px;">Final Incident Report →</a>
+</div>
+{% endblock %}

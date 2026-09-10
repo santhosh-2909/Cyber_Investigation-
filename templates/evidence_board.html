@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Digital Evidence Board{% endblock %}
+{% block content %}
+<div class="card">
+    <h1 style="font-size:24px;">🖥️ Digital Evidence Board</h1>
+    <p class="muted">The verified findings connect into a visual attack chain. As you solve stations, the evidence links together.</p>
+</div>
+
+<div class="card">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
+        {% for node in board %}
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;min-width:150px;">
+            <div style="font-size:26px;">{{ node.icon }}</div>
+            <div style="font-weight:700;margin-top:6px;">{{ node.label }}</div>
+            <div class="muted" style="font-size:12px;margin-top:4px;">{{ node.detail }}</div>
+        </div>
+        {% if not loop.last %}
+        <div style="color:var(--accent);font-size:22px;font-weight:700;">→</div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>🧳 Verified Findings So Far</h2>
+    <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+        <thead>
+            <tr style="text-align:left;" class="muted">
+                <th style="padding:8px;border-bottom:1px solid var(--border);">Station</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border);">Your Finding</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border);">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in case.stations %}
+            <tr>
+                <td style="padding:8px;border-bottom:1px solid var(--border);">{{ s.id }} — {{ s.name }}</td>
+                <td style="padding:8px;border-bottom:1px solid var(--border);">
+                    {% if s.id in findings %}{{ findings[s.id].value }}{% else %}<span class="muted">—</span>{% endif %}
+                </td>
+                <td style="padding:8px;border-bottom:1px solid var(--border);">
+                    {% set f = findings.get(s.id) %}
+                    {% if f and f.status == 'verified' %}<span class="status-verified">✅ Verified</span>
+                    {% elif f and f.status == 'incorrect' %}<span class="status-incorrect">❌ Incorrect</span>
+                    {% else %}<span class="muted">Not attempted</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="text-align:center;margin-top:20px;">
+    <a href="{{ url_for('report') }}" class="btn green">Continue to Final Incident Report →</a>
+</div>
+{% endblock %}

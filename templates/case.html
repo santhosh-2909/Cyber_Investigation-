@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Case File - {{ case.title }}{% endblock %}
+{% block content %}
+<div class="card">
+    <span class="tag">{{ case.code }}</span>
+    <h1 style="margin-top:10px;font-size:26px;">CASE FILE: {{ case.title | upper }}</h1>
+    <p class="muted">Team: {{ team.name }} · Case ID: {{ team.case }}</p>
+</div>
+
+<div class="card">
+    <h2>🏢 Company Background</h2>
+    <p style="line-height:1.7;margin-top:8px;">
+        <b>{{ case.company }}</b> — {{ case.incident }}
+    </p>
+</div>
+
+<div class="card">
+    <h2>🚨 Incident Description</h2>
+    <p style="line-height:1.7;margin-top:8px;">{{ case.incident }} The case has been referred to your forensic team for investigation. Digital evidence has been preserved across 5 stations.</p>
+</div>
+
+<div class="card">
+    <h2>🎯 Investigation Objective</h2>
+    <p style="line-height:1.7;margin-top:8px;">{{ case.objective }}</p>
+    <p class="muted" style="margin-top:8px;font-size:14px;">Every conclusion must be supported by the evidence you uncover in the stations.</p>
+</div>
+
+<div class="card">
+    <h2>📋 Rules & Instructions</h2>
+    <ul style="padding-left:20px;line-height:2;margin-top:8px;">
+        <li>Investigate the <b>5 evidence stations</b> in the Evidence Room.</li>
+        <li>Each station requires you to submit a <b>verified finding</b> based on the evidence.</li>
+        <li>After the stations, complete the <b>Final Incident Report</b> identifying the persons involved.</li>
+        <li>Correct findings earn points; hints deduct points; submissions are limited.</li>
+        <li>Identify the <b>victim, suspect / attacker, and involved persons</b> using the input fields.</li>
+    </ul>
+</div>
+
+<div style="text-align:center;margin-top:20px;">
+    <a href="{{ url_for('dashboard') }}" class="btn">▶ Start Investigation</a>
+</div>
+{% endblock %}

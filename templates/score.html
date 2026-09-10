@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Score - Results{% endblock %}
+{% block content %}
+<div class="card" style="text-align:center;">
+    <div style="font-size:52px;margin-bottom:8px;">🏆</div>
+    <h1 style="font-size:26px;">Investigation Complete</h1>
+    <p class="muted">Team: {{ team.name }} · {{ case.title }}</p>
+</div>
+
+<div class="card" style="text-align:center;">
+    <div style="font-size:48px;font-weight:800;color:var(--accent);">{{ total }}<span style="font-size:24px;color:var(--muted);"> / {{ grand_max }}</span></div>
+    <p class="muted" style="margin-top:6px;">Total Score</p>
+</div>
+
+<div class="card">
+    <table style="width:100%;border-collapse:collapse;">
+        <tbody>
+            <tr>
+                <td style="padding:12px;border-bottom:1px solid var(--border);">🕵️ Evidence Stations ({{ case.stations|length }} × 100)</td>
+                <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;">{{ station_points }} / {{ station_max }}</td>
+            </tr>
+            <tr>
+                <td style="padding:12px;border-bottom:1px solid var(--border);">🧑‍🤝‍🧑 Person Identification ({{ case.persons|length }} × 75)</td>
+                <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;">{{ person_points }} / {{ person_max }}</td>
+            </tr>
+            <tr>
+                <td style="padding:12px;border-bottom:1px solid var(--border);">📝 Investigation Report (entry + timeline + conclusion)</td>
+                <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;">{{ report_points }} / 100</td>
+            </tr>
+            <tr>
+                <td style="padding:12px;font-weight:800;">TOTAL</td>
+                <td style="padding:12px;text-align:right;font-weight:800;color:var(--accent);">{{ total }} / {{ grand_max }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div style="text-align:center;margin-top:16px;">
+    <a href="{{ url_for('reset') }}" class="btn ghost">🔄 Restart Investigation</a>
+</div>
+{% endblock %}

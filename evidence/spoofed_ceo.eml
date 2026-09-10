@@ -1,0 +1,6 @@
+FROM: ceo@stellarworks.com
+Return-Path: attacker@fraud.com
+SPF: FAIL
+DKIM: FAIL
+Received-IP: 203.0.113.200
+Reply-To: accounts.verify@fraudmail.net
