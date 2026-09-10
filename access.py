@@ -177,6 +177,63 @@ def _team_pub_dict(d):
     return {k: d.get(k) for k in keys}
 
 
+def _session_fallback_team(s, round_name=None):
+    """Reconstruct a team dict from the signed Flask session cookie.
+
+    On Vercel / serverless platforms the SQLite DB is ephemeral per function
+    instance, so the token written during login may not exist in the DB on
+    the *next* request (different instance → fresh DB copy).  Because Flask
+    session cookies are cryptographically signed with the app secret key the
+    client cannot forge them, making them a safe fallback for auth when the
+    DB row is missing.
+    """
+    profile = s.get("r1_profile")
+    team_sess = s.get("team")
+
+    if round_name == "round1" and profile:
+        return {
+            "id": profile.get("id"),
+            "team_id": profile.get("team_id"),
+            "team_name": profile.get("team_name"),
+            "participant_names": "",
+            "is_active": 1,
+            "round1_enabled": 1,
+            "round2_enabled": 0,
+        }
+    if round_name == "round2" and team_sess:
+        return {
+            "id": s.get("r1_team"),
+            "team_id": team_sess.get("team_id"),
+            "team_name": team_sess.get("name"),
+            "participant_names": team_sess.get("captain", ""),
+            "is_active": 1,
+            "round1_enabled": 0,
+            "round2_enabled": 1,
+        }
+    # No specific round requested — return whichever round's session exists.
+    if profile:
+        return {
+            "id": profile.get("id"),
+            "team_id": profile.get("team_id"),
+            "team_name": profile.get("team_name"),
+            "participant_names": "",
+            "is_active": 1,
+            "round1_enabled": 1,
+            "round2_enabled": 1,
+        }
+    if team_sess:
+        return {
+            "id": s.get("r1_team"),
+            "team_id": team_sess.get("team_id"),
+            "team_name": team_sess.get("name"),
+            "participant_names": team_sess.get("captain", ""),
+            "is_active": 1,
+            "round1_enabled": 1,
+            "round2_enabled": 1,
+        }
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Participant login / logout / validation
 # ---------------------------------------------------------------------------
@@ -362,9 +419,15 @@ def validate_participant(round_name=None):
         _clear_participant_session()
 
     if row is None:
-        # A round-specific query that finds no row simply means the participant
-        # is not signed into that round — NOT a revoked session. Wiping here
-        # would nuke a round1-only team just for hitting a round2-only route.
+        # On Vercel / serverless platforms the SQLite DB is ephemeral per
+        # function instance so a freshly-copied DB will NOT contain the token
+        # written during login on a previous (or different) instance.  When
+        # the session cookie still carries valid team metadata we can fall
+        # back to cookie-based auth — Flask sessions are signed with the
+        # secret key and cannot be forged by the client.
+        cookie_team = _session_fallback_team(s, round_name)
+        if cookie_team is not None:
+            return cookie_team
         if round_name:
             return None
         _invalidate("session_ended_by_admin")
