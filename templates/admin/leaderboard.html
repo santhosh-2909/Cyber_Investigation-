@@ -1,0 +1,85 @@
+{% extends "admin_base.html" %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Leaderboard</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Round 1 = best auto-scored session &middot; Round 2 = persisted case score card (updates when a team opens its Score page)</div>
+  </div>
+</div>
+
+<div class="ap-nav-cats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+  <button class="ap-btn sm" id="lbTabR1" onclick="showCat('cat-r1')">ROUND 1</button>
+  <button class="ap-btn ghost sm" id="lbTabR2" onclick="showCat('cat-r2')">ROUND 2</button>
+</div>
+
+<div class="ap-panel" id="cat-r1">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Round 1 Leaderboard &mdash; Mixed Fundamentals ({{ leaderboard | length }})</h3>
+    <span class="ap-badge accent">AUTO SCORE</span>
+  </div>
+  {% if leaderboard %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Rank</th><th>Team</th><th>Score</th><th>Solved</th><th>Completed</th></tr>
+      {% for row in leaderboard %}
+      <tr>
+        <td><span class="ap-badge {{ 'accent' if loop.index <= 3 else 'neutral' }}">#{{ loop.index }}</span></td>
+        <td class="cell-strong">{{ row.team_name }}</td>
+        <td class="cell-strong accent">{{ row.r1_score or 0 }}</td>
+        <td>{{ row.r1_solved or 0 }} / 6</td>
+        <td><span class="ap-mono ap-muted" style="font-size:11px;">{{ row.r1_done | ts if row.r1_done else '—' }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No Round 1 scores yet.</div>
+  {% endif %}
+</div>
+
+<div class="ap-panel" id="cat-r2" style="display:none;">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Round 2 Leaderboard &mdash; Digital Forensics ({{ r2_leaderboard | length }})</h3>
+    <span class="ap-badge success">CASE SCORE</span>
+  </div>
+  {% if r2_leaderboard %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Rank</th><th>Team</th><th>Case</th><th>Total</th><th>Stations</th><th>Persons</th><th>Report</th></tr>
+      {% for row in r2_leaderboard %}
+      <tr>
+        <td><span class="ap-badge {{ 'accent' if loop.index <= 3 else 'neutral' }}">#{{ loop.index }}</span></td>
+        <td class="cell-strong">{{ row.team_name }}</td>
+        <td>
+          <div class="ap-mono" style="font-size:11px;">{{ row.case_code or '—' }}</div>
+          <div class="ap-muted" style="font-size:11px;">{{ row.case_title or '' }}</div>
+        </td>
+        <td class="cell-strong accent">{{ row.total }}</td>
+        <td>{{ row.verified_stations }} solved &middot; {{ row.station_points }} pts</td>
+        <td>{{ row.verified_persons }} &middot; {{ row.person_points }} pts</td>
+        <td><span class="ap-badge {{ 'success' if row.report_done else 'muted' }}">{{ 'SUBMITTED' if row.report_done else '—' }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No Round 2 score cards yet. Scores persist when a team finishes a case and opens its Score page.</div>
+  {% endif %}
+</div>
+
+<script>
+  function showCat(id) {
+    document.getElementById('cat-r1').style.display = (id === 'cat-r1') ? 'block' : 'none';
+    document.getElementById('cat-r2').style.display = (id === 'cat-r2') ? 'block' : 'none';
+    var buttons = { 'cat-r1': 'lbTabR1', 'cat-r2': 'lbTabR2' };
+    var b = document.getElementById(buttons[id]);
+    var other = document.getElementById(buttons[id === 'cat-r1' ? 'cat-r2' : 'cat-r1']);
+    b.className = 'ap-btn sm';
+    other.className = 'ap-btn ghost sm';
+  }
+  showCat('cat-r1');
+</script>
+
+{% endblock %}

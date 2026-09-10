@@ -1,0 +1,60 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Case Preview{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Preview: {{ case.title }}</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">{{ case.case_code }} &middot; {{ case.company }} &middot; {{ case.difficulty }} &middot; {{ case.points }} pts</div>
+  </div>
+  <a href="{{ url_for('admin_r2_case_detail', cid=case.id) }}" class="ap-btn ghost sm">BACK TO CASE</a>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Case Brief</h3></div>
+  <p class="ap-muted" style="margin:0 0 4px;">{{ case.case_brief or 'No brief.' }}</p>
+  <p class="ap-muted" style="font-size:13px;">{{ case.objective or '' }}</p>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Investigation Tasks ({{ stations | length }})</h3></div>
+  {% if stations %}
+  {% for s in stations %}
+  <div class="ap-border" style="padding:14px;margin-bottom:10px;">
+    <div class="ap-between">
+      <div>
+        <div class="cell-strong">{{ s.name }} <span class="ap-badge neutral">{{ s.domain or '' }}</span></div>
+        <div class="ap-mono ap-muted" style="font-size:10px;">{{ s.question }}</div>
+      </div>
+      <span class="cell-strong accent">{{ s.points }} pts</span>
+    </div>
+    <p class="ap-muted" style="font-size:12px;margin:8px 0 4px;">{{ s.description or '' }}</p>
+    {% if s.hint %}<p class="ap-warning" style="font-size:12px;margin:0;">HINT: {{ s.hint }}</p>{% endif %}
+    <p class="ap-mono ap-muted" style="font-size:10px;margin:6px 0 0;">evidence: {{ s.evidence or '—' }}</p>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="ap-empty">No tasks.</div>
+  {% endif %}
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Report Persons ({{ persons | length }})</h3></div>
+  {% if persons %}
+  {% for p in persons %}
+  <div class="ap-between" style="padding:10px 0;border-bottom:1px solid rgba(108,43,255,.08);">
+    <div>
+      <div class="cell-strong">{{ p.role }}</div>
+      <div class="ap-muted" style="font-size:11px;">clue: {{ p.clue or '—' }}</div>
+    </div>
+    <span class="ap-mono ap-muted" style="font-size:11px;">expected answers hidden</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="ap-empty">No persons.</div>
+  {% endif %}
+</div>
+
+<p class="ap-muted" style="font-size:11px;">Answer keys are hidden from this preview page.</p>
+
+{% endblock %}

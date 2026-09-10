@@ -1,0 +1,41 @@
+{% extends "r1_admin_base.html" %}
+{% block title %}Submissions - Cyber Puzzle Admin{% endblock %}
+{% block content %}
+<div class="admin-section-title">
+  <h2>Answer Submissions</h2>
+  <p>Latest {{ submissions|length }} answers. For auditing correctness and rate-limits.</p>
+</div>
+
+<div class="table-wrapper" style="background:var(--surface, #12161f);border:1px solid var(--border);border-radius:var(--radius-lg, 12px);padding:8px 16px;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Team</th>
+        <th>Challenge</th>
+        <th>Variant</th>
+        <th>Answer</th>
+        <th>Correct</th>
+        <th>Attempt</th>
+        <th>Submitted</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sub in submissions %}
+      <tr>
+        <td><span class="font-mono text-muted">{{ sub.id }}</span></td>
+        <td><span class="text-primary">{{ sub.team_name }}</span></td>
+        <td><span class="font-mono">{{ sub.challenge_code }}</span></td>
+        <td><span class="font-mono text-muted">{{ sub.variant_code }}</span></td>
+        <td><code style="color:var(--text-secondary);font-size:0.8rem;">{{ sub.submitted_answer }}</code></td>
+        <td>
+          <span class="badge {{ 'badge-success' if sub.is_correct else 'badge-danger' }}">{{ 'YES' if sub.is_correct else 'NO' }}</span>
+        </td>
+        <td><span class="font-mono text-muted">{{ sub.attempt_number }}</span></td>
+        <td><span class="font-mono text-muted">{{ sub.submitted_at }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

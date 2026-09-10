@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Puzzle - Mixed Fundamentals | Round 1</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%236C2BFF'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='16' font-weight='bold' font-family='monospace'>R1</text></svg>">
+</head>
+<body class="hx-frame">
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">R1 LAB</span>
+    </div>
+    <div class="hx-sec-center hx-seg"><span class="hx-cursor">CHALLENGE NODE</span></div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+    </div>
+  </div>
+  <div class="pub-stage">
+
+    <!-- Cinematic command-center scene (decorative background) -->
+    <div class="cyber-scene" aria-hidden="true">
+      <div class="cs-glows"></div>
+      <div class="cs-monitor cs-monitor-l"></div>
+      <div class="cs-monitor cs-monitor-r"></div>
+      <div class="cs-hood"></div>
+      <div class="cs-binary"></div>
+      <div class="cs-overlay"></div>
+    </div>
+
+    <!-- Public header -->
+    <nav class="pub-nav">
+      <div class="pub-nav-inner">
+        <a href="{{ url_for('r1.r1_landing') }}" class="pub-nav-brand">
+          <span class="pub-nav-logo">R1</span>
+          <span class="pub-nav-name">Cyber<span>Puzzle</span></span>
+        </a>
+        <div class="pub-nav-links">
+          <a href="{{ url_for('r1.r1_landing') }}" class="hud-nav-link active">Home</a>
+          <a href="{{ url_for('r1.r1_rules') }}" class="hud-nav-link">Rules</a>
+        </div>
+        <div class="pub-nav-actions">
+          {% if team %}
+            <span class="hud-badge hud-badge-green">&#9679; SIGNED IN</span>
+            {% if session_row %}
+              <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-btn hud-btn-green btn-sm">RESUME</a>
+            {% else %}
+              <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-btn hud-btn-green btn-sm">DASHBOARD</a>
+            {% endif %}
+            <a href="{{ url_for('r1.r1_logout') }}" class="hud-btn hud-btn-ghost btn-sm" style="color:var(--hud-muted);">Logout</a>
+          {% else %}
+            <a href="{{ url_for('r1.r1_login') }}" class="hud-btn hud-btn-ghost btn-sm">TEAM LOGIN</a>
+          {% endif %}
+          <a href="{{ url_for('r1.r1_admin_login') }}" class="hud-btn hud-btn-ghost btn-sm" style="color:var(--hud-muted);">Admin</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="pub-hero">
+      <div class="hud-badge hud-badge-purple" style="gap:6px;padding:5px 14px;">&#9679; ROUND 1 - CYBER PUZZLE</div>
+
+      <h1 class="hud-h1" style="font-size:clamp(2.6rem,7vw,4.6rem);line-height:1.02;font-weight:900;margin:22px 0 8px;letter-spacing:-0.01em;">
+        MIXED<br>FUNDAMENTALS
+      </h1>
+
+      <div class="hud-kicker" style="font-size:14px;margin:8px 0 18px;">
+        12 domains. 6 challenges. 30 minutes.
+      </div>
+
+      <p class="hud-sub" style="max-width:520px;margin:0 auto 34px;font-size:1.05rem;line-height:1.7;">
+        Every team receives a unique, randomized set of six technical challenges drawn
+        from twelve cyber fundamentals categories. Solve each flag to build your score.
+      </p>
+
+      <div class="hud-hero-actions">
+        {% if team %}
+          {% if session_row and session_row.status == 'ACTIVE' %}
+            <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-btn btn-xl">RESUME MY ROUND</a>
+          {% else %}
+            <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-btn btn-xl">GO TO DASHBOARD</a>
+          {% endif %}
+        {% else %}
+          <a href="{{ url_for('r1.r1_login') }}" class="hud-btn btn-xl">START THE PUZZLE</a>
+          <a href="{{ url_for('r1.r1_login') }}" class="pub-btn-secondary btn-xl">TEAM LOGIN</a>
+        {% endif %}
+      </div>
+    </section>
+
+    <footer style="padding:32px 0;border-top:1px solid #292348;position:relative;z-index:2;">
+      <div class="container-wide flex items-center justify-between" style="flex-wrap:wrap;gap:16px;">
+        <div class="flex items-center gap-sm">
+          <div class="pub-nav-logo" style="width:24px;height:24px;font-size:10px;">R1</div>
+          <span class="font-mono" style="font-size:0.75rem;color:var(--hud-dim);">CYBER PUZZLE 2026</span>
+        </div>
+        <div class="font-mono" style="font-size:0.6875rem;color:var(--hud-dim);">
+          ROUND 1 - MIXED FUNDAMENTALS
+        </div>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Operations Center - Cyber Challenge 2026{% endblock %}
+{% block content %}
+<div class="fs-shell">
+
+  <!-- Masthead -->
+  <header class="fs-masthead" style="padding:22px 24px;">
+    <div class="file-icon" style="width:40px;height:40px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg>
+    </div>
+    <div>
+      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
+        <span class="fs-chip violet">CYBER CHALLENGE 2026</span>
+        <span class="fs-chip ok">ONE LOGIN · BOTH ROUNDS</span>
+        <span class="fs-chip dim">TEAM {{ team.team_id|upper }}</span>
+        <span class="hx-badge">SESSION SECURE</span>
+      </div>
+      <div class="mh-title" style="font-size:1.45rem;margin-top:4px;">OPERATIONS CENTER</div>
+      <div class="mh-sub">Welcome back, {{ team.name }} · Squad: {{ team.name }}</div>
+    </div>
+    <div class="mh-right">
+      <div class="fs-mono" style="text-align:right;">
+        <div class="fs-overline">ROUND 1 CHALLENGES SOLVED</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent);">{{ r1_stats.solved if r1_stats else 0 }}<span style="font-size:.85rem;color:var(--text-muted);">/6</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Intro -->
+  <div class="fs-card" style="padding:18px 20px;margin-bottom:14px;border-color:var(--accent-border);">
+    <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:14px;">
+      <p style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;max-width:760px;">
+        Choose a round to launch. Your progress in each is saved automatically — solve the CYBER PUZZLE, then run the DIGITAL FORENSICS investigation.
+      </p>
+      <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-primary btn-lg">
+        START ROUND 1
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+
+    <!-- Secure verification strip -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);">
+      <span class="hx-badge">⚙ USER {{ team.team_id|upper }}</span>
+      <span class="hx-badge cyan">AUTH {{ 'VERIFIED' if team else 'PENDING' }}</span>
+      <span class="hx-badge purple">ROUND 1 {{ r1_stage|upper|replace('_',' ') }}</span>
+      <span class="hx-badge neutral">NODE CONNECTED</span>
+    </div>
+  </div>
+
+  <!-- Mission cards -->
+  <div class="grid grid-3" style="margin-bottom:14px;">
+
+    <!-- ROUND 1 -->
+    <div class="fs-card" style="padding:22px 24px;border-color:var(--accent-border);">
+      <div class="flex items-center justify-between" style="margin-bottom:10px;">
+        <div>
+          <span class="fs-chip violet">ROUND 1</span>
+          <div class="mh-title" style="font-size:1.2rem;margin-top:8px;">MIXED FUNDAMENTALS</div>
+          <div class="fs-overline" style="margin-top:4px;">CYBER PUZZLE · 6 CHALLENGES · 30 MIN · 600 PTS</div>
+        </div>
+      </div>
+
+      <p style="font-size:.85rem;color:var(--text-secondary);line-height:1.6;min-height:64px;">
+        {% if r1_stage == 'complete' %}
+          Round complete. Review your results or view the finished session.
+        {% elif r1_stage == 'in_progress' %}
+          You have an active timer. Resume exactly where you left off.
+        {% else %}
+          Draw from twelve cyber fundamentals categories. Every team gets a unique randomized set of six.
+        {% endif %}
+      </p>
+
+      <div class="fs-overline" style="margin-bottom:8px;">
+        {% if r1_stage == 'in_progress' %}
+          <span class="fs-chip warn">IN PROGRESS · RESUME</span>
+        {% elif r1_stage == 'complete' %}
+          <span class="fs-chip ok">COMPLETED · REVIEW</span>
+        {% else %}
+          <span class="fs-chip dim">NOT STARTED · ENTER</span>
+        {% endif %}
+      </div>
+
+      {% if r1_stats %}
+      <div class="progress mt-md"><div class="progress-fill" style="width:{{ (r1_stats.solved * 100 / 6)|round|int }}%;"></div></div>
+      <div class="fs-mono" style="display:flex;justify-content:space-between;margin-top:8px;font-size:.72rem;color:var(--text-muted);">
+        <span>{{ r1_stats.solved }} OF 6 FLAGS · SCORE {{ r1_stats.score }}</span>
+        <span id="r1-rem-txt">COMPUTING…</span>
+      </div>
+      <script>
+        (function(){
+          var rem = {{ r1_stats.remaining_ms }};
+          if (rem <= 0){ document.getElementById('r1-rem-txt').textContent = 'TIME EXPIRED'; return; }
+          var el = document.getElementById('r1-rem-txt');
+          var pad = function(n){ return String(n).padStart(2,'0'); };
+          var tick = function(){
+            if (rem <= 0){ el.textContent='TIME EXPIRED'; return; }
+            var m=Math.floor(rem/60000), s=Math.floor((rem%60000)/1000);
+            el.textContent = 'LEFT ' + pad(m) + ':' + pad(s);
+            rem -= 1000;
+          };
+          tick(); setInterval(tick, 1000);
+        })();
+      </script>
+      {% endif %}
+
+      <a href="{{ url_for('r1.r1_dashboard') }}" class="btn {% if r1_stage == 'in_progress' %}btn-ghost{% elif r1_stage == 'complete' %}btn-success{% else %}btn-primary{% endif %} w-full" style="margin-top:16px;">
+        {% if r1_stage == 'in_progress' %}RESUME ROUND{% elif r1_stage == 'complete' %}REVIEW ROUND{% else %}ENTER ROUND 1{% endif %}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+
+    <!-- ROUND 2 -->
+    <div class="fs-card" style="padding:22px 24px;border-color:var(--accent-border);">
+      <div class="flex items-center justify-between" style="margin-bottom:10px;">
+        <div>
+          <span class="fs-chip ok">ROUND 2</span>
+          <div class="mh-title" style="font-size:1.2rem;margin-top:8px;">DIGITAL FORENSICS</div>
+          <div class="fs-overline" style="margin-top:4px;">CYBER DETECTIVE · NARRATIVE CASES · WORKSTATION</div>
+        </div>
+      </div>
+
+      <p style="font-size:.85rem;color:var(--text-secondary);line-height:1.6;min-height:64px;">
+        {% if team.case %}
+          Your assigned case is loaded. Open the forensic workstation to continue your investigation.
+        {% else %}
+          Step into the forensic workstation and take on a narrative investigation case.
+        {% endif %}
+      </p>
+
+      <div class="fs-overline" style="margin-bottom:8px;"><span class="fs-chip ok">OPEN · ENTER WORKSTATION</span></div>
+
+      <div class="progress mt-md"><div class="progress-fill success" style="width:100%;"></div></div>
+      <div class="fs-mono" style="display:flex;justify-content:space-between;margin-top:8px;font-size:.72rem;color:var(--text-muted);">
+        {% if team.case %}
+          <span>ASSIGNED</span>
+          <span style="color:var(--accent);">CASE {{ team.case }} ACTIVE</span>
+        {% else %}
+          <span>NO CASE ASSIGNED</span>
+          <span style="color:var(--text-muted);">READY TO START</span>
+        {% endif %}
+      </div>
+
+      <a href="{{ url_for('dashboard') }}" class="btn btn-primary w-full" style="margin-top:16px;">
+        ENTER WORKSTATION
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+
+    <!-- Team summary -->
+    <div class="fs-card" style="padding:22px 24px;">
+      <div class="fs-overline" style="margin-bottom:10px;"><strong>TEAM PROFILE</strong></div>
+      <div style="font-size:1.15rem;font-weight:800;color:var(--text-primary);">{{ team.name }}</div>
+      <div class="fs-mono" style="font-size:.72rem;color:var(--text-muted);margin-top:4px;">TEAM {{ team.team_id|upper }}</div>
+      <div class="fs-mono" style="display:grid;gap:6px;margin-top:16px;font-size:.72rem;color:var(--text-muted);">
+        <span>ROUND 1 STATUS · <b style="color:var(--accent);">{{ r1_stage|upper|replace('_',' ') }}</b></span>
+        {% if r1_stats %}
+        <span>FLAGS SOLVED · <b style="color:var(--success);">{{ r1_stats.solved }}/6</b></span>
+        <span>SCORE · <b style="color:var(--accent);">{{ r1_stats.score }}</b></span>
+        {% endif %}
+        {% if r2_ready %}
+        <span>WORKSTATION · <b style="color:var(--success);">READY</b></span>
+        {% endif %}
+      </div>
+      <div class="mt-md">
+        <span class="badge badge-success badge-dot">SESSION ACTIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Round-to-round workflow -->
+  <div class="fs-card" style="padding:18px 20px;">
+    <div class="fs-overline" style="margin-bottom:8px;">COMPETITION LADDER</div>
+    <div class="wf">
+      <div class="wf-step {{ 'done' if r1_stage == 'complete' else 'active' }}"><div class="wf-dot">1</div><div class="wf-label">Round 1 · Puzzle</div></div>
+      <div class="wf-step {{ 'done' if r2_ready else 'active' if r1_stage == 'complete' }}"><div class="wf-dot">2</div><div class="wf-label">Round 2 · Forensics</div></div>
+      <div class="wf-step"><div class="wf-dot">3</div><div class="wf-label">Report &amp; Verdict</div></div>
+      <div class="wf-step"><div class="wf-dot">4</div><div class="wf-label">Scoreboard</div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

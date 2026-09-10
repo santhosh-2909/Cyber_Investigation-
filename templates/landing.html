@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cyber Challenge 2026</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
+</head>
+<body class="hx-frame">
+<div class="hx-crt" aria-hidden="true"></div>
+<div class="hx-secstrip" aria-hidden="true">
+  <div class="hx-sec-left">
+    <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+    <span class="hx-pipe">|</span>
+    <span class="hx-seg">TLS 1.3</span>
+  </div>
+  <div class="hx-sec-center hx-seg"><span class="hx-cursor">ENCRYPTED SESSION</span></div>
+  <div class="hx-sec-right">
+    <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+    <span class="hx-pipe">|</span>
+    <span class="hx-seg">NODE <span class="hx-blink">OK</span></span>
+  </div>
+</div>
+<main class="front">
+  <!-- Background scene layer -->
+  <div class="cyber-scene" aria-hidden="true">
+    <div class="cs-glows"></div>
+    <div class="cs-hood"></div>
+    <div class="cs-binary"></div>
+    <div class="cs-overlay"></div>
+  </div>
+
+  <!-- Purple wireframe neural globe -->
+  <div class="neural-globe" aria-hidden="true">
+    <span class="ng-orbit o1"></span>
+    <span class="ng-orbit o2"></span>
+    <span class="ng-orbit o3"></span>
+    <span class="ng-core"></span>
+  </div>
+
+  <!-- Case file visual -->
+  <div class="case-visual" aria-hidden="true">
+    <div class="case-file">
+      <div class="case-tab">CLASSIFIED</div>
+      <div class="case-title">CASE FILE<br>CYBER 2026</div>
+      <div class="case-lines"></div>
+      <div class="case-stamp">DIGITAL<br>EVIDENCE</div>
+      <div class="case-lock"></div>
+    </div>
+  </div>
+
+  <!-- Sparse purple binary rain -->
+  <div class="matrix-rain" aria-hidden="true">
+    {% for col in range(20) %}
+    {% set glyph = '01' if col % 2 == 0 else '10' %}
+    {% set head = '0' if col % 3 == 0 else '1' %}
+    <div class="mcol" style="left:{{ col * 5.2 }}%; --fall:{{ (9 + (col * 37) % 13) }}s; --delay:{{ '%.2f'|format(-(col * 1.1) % 10) }}s;">
+      <span class="mhead">{{ head }}</span>
+      <span class="mbody">{{ glyph * 120 }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="front-inner">
+    <nav class="front-nav">
+      <a class="front-brand" href="{{ url_for('landing') }}">◈ CYBER<b>CHALLENGE</b></a>
+      <div class="front-links">
+        <a href="#mission">MISSION</a>
+        <a href="{{ url_for('scoreboard') }}">LEADERBOARD</a>
+        <a href="{{ url_for('r1.r1_rules') }}">RULES</a>
+        <a class="front-login" href="{{ url_for('start') }}">LOGIN</a>
+      </div>
+    </nav>
+
+    <section class="front-hero" id="mission">
+      <div class="front-copy">
+        <div class="eyebrow">CYBER INVESTIGATION CHALLENGE · 2026</div>
+        <h1>THINK &gt; INVESTIGATE<br><strong>SOLVE</strong> &gt; SECURE</h1>
+        <p>Enter a Kali-inspired command center built for codebreakers, programmers, and digital investigators. Select your operation to authenticate with the credentials issued for that round.</p>
+        <div class="command" style="margin-bottom:22px;"><span>ROUND 01</span><i>→</i><strong>ROUND 02</strong><i>→</i><span>LEADERBOARD</span></div>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+          <span class="hx-badge neutral">ACCESS PROVISIONED</span>
+          <span class="hx-badge cyan">SESSION SECURE</span>
+          <span class="hx-badge">FLAG VETTED</span>
+        </div>
+        <div class="round-buttons">
+          <a class="round-btn" href="{{ url_for('r1.r1_login') }}">
+            <span>ROUND 1<small>MIXED FUNDAMENTALS</small></span><span>→</span>
+          </a>
+          <a class="round-btn r2" href="{{ url_for('r2_login') }}">
+            <span>ROUND 2<small>DIGITAL FORENSICS</small></span><span>→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="front-inner" style="padding-top:0;">
+    <footer class="front-bottom">
+      <span>GOOD HACKERS MAKE A SAFER WORLD</span>
+      <span>CYBER CHALLENGE 2026</span>
+      <a href="{% if is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('r1.r1_admin_login') }}{% endif %}">ADMIN CONSOLE ↗</a>
+    </footer>
+  </div>
+</main>
+<style>
+  @media (max-width: 980px) {
+    .case-visual, .neural-globe { display: none; }
+  }
+  @media (max-width: 720px) {
+    .hx-secstrip .hx-sec-center { display: none; }
+  }
+</style>
+</body></html>

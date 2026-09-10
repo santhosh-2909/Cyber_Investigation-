@@ -1,0 +1,33 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 1 Challenge Preview{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Preview: {{ challenge.title }}</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">{{ challenge.challenge_code }} &middot; {{ challenge.domain }} &middot; {{ challenge.difficulty }} &middot; {{ challenge.points }} pts</div>
+  </div>
+  <a href="{{ url_for('admin_r1_challenges') }}" class="ap-btn ghost sm">BACK TO CHALLENGES</a>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">{{ challenge.title }}</h3></div>
+  <p class="ap-muted" style="margin:0 0 6px;">{{ challenge.description or 'No description.' }}</p>
+  {% for v in variants %}
+  <hr class="ap-divider">
+  <div class="ap-form-grid">
+    <div class="ap-field">
+      <label>Variant {{ v.variant_code }} &middot; Question</label>
+      <div style="color:var(--ap-muted);font-size:13px;">{{ v.question }}</div>
+    </div>
+    <div class="ap-field">
+      <label>Hint</label>
+      <div style="color:var(--ap-muted);font-size:13px;">{{ v.hint or '—' }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<p class="ap-muted" style="font-size:11px;">Answer keys are intentionally hidden from this preview page.</p>
+
+{% endblock %}

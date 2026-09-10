@@ -1,0 +1,58 @@
+{% extends "admin_base.html" %}
+{% block title %}Live Monitoring{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Live Monitoring</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Active participant sessions with round progress</div>
+  </div>
+  <button class="ap-btn ghost sm" onclick="window.location.reload()">REFRESH</button>
+</div>
+
+<div class="ap-cards">
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Online now</span>
+    <span class="ap-stat-value success">{{ stats.active_participants }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Round 1 active</span>
+    <span class="ap-stat-value accent">{{ stats.r1_active }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Round 2 active</span>
+    <span class="ap-stat-value accent">{{ stats.round2_logins }}</span>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Active Sessions</h3></div>
+  {% if sessions %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Team</th><th>Round</th><th>State</th><th>Case</th><th>Progress</th><th>Last seen</th></tr>
+      {% for s in sessions %}
+      <tr>
+        <td class="cell-strong">{{ s.team_name }}</td>
+        <td><span class="ap-badge neutral">{{ 'R1' if s.round_name == 'round1' else 'R2' }}</span></td>
+        <td><span class="ap-badge {{ 'success' if s.state == 'ONLINE' else 'muted' }}">{{ s.state }}</span></td>
+        <td class="ap-mono">{{ s.case or '—' }}</td>
+        <td>
+          {% if s.round_name == 'round1' %}
+            {{ s.progress }} <span class="ap-muted">({{ s.session_status }})</span>
+            {% if s.current %}<div style="font-size:11px;" class="ap-muted">now: {{ s.current }}</div>{% endif %}
+          {% else %}
+            <span class="ap-muted">session-based</span>
+          {% endif %}
+        </td>
+        <td class="ap-mono">{{ s.last_seen | ts }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No active participant sessions.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

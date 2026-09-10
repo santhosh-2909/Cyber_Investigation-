@@ -1,0 +1,73 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Settings{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 Settings</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">DIGITAL FORENSICS configuration</div>
+  </div>
+</div>
+
+<div class="ap-panel" style="max-width:760px;">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Round Configuration</h3></div>
+  <div class="ap-form-grid">
+    <div class="ap-field">
+      <label>Display name</label>
+      <input id="s2_display_name" value="{{ r2.display_name }}">
+    </div>
+    <div class="ap-field">
+      <label>Status</label>
+      <select id="s2_status">
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if s == r2.status %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ap-field">
+      <label>Timer (minutes)</label>
+      <input id="s2_timer" type="number" value="{{ r2.timer_minutes }}">
+    </div>
+    <div class="ap-field">
+      <label>Max task attempts</label>
+      <input id="s2_max" type="number" value="{{ r2.max_attempts }}">
+    </div>
+    <div class="ap-field">
+      <label>Scoring mode</label>
+      <select id="s2_scoring">
+        <option value="AUTO" {% if r2.scoring_mode == 'AUTO' %}selected{% endif %}>AUTO</option>
+        <option value="MANUAL" {% if r2.scoring_mode == 'MANUAL' %}selected{% endif %}>MANUAL</option>
+      </select>
+    </div>
+    <div class="ap-field" style="justify-content:flex-end;">
+      <label class="ap-check">
+        <input id="s2_access" type="checkbox" {% if r2.access_enabled %}checked{% endif %}>
+        Allow participant logins
+      </label>
+    </div>
+    <div class="ap-field" style="grid-column:1 / -1;">
+      <label>Description</label>
+      <textarea id="s2_desc">{{ r2.description }}</textarea>
+    </div>
+  </div>
+  <button class="ap-btn" onclick="saveSettings()">SAVE SETTINGS</button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function saveSettings() {
+    var payload = {
+      display_name: document.getElementById('s2_display_name').value.trim(),
+      status: document.getElementById('s2_status').value,
+      timer_minutes: parseInt(document.getElementById('s2_timer').value || '0', 10),
+      max_attempts: parseInt(document.getElementById('s2_max').value || '0', 10),
+      scoring_mode: document.getElementById('s2_scoring').value,
+      access_enabled: document.getElementById('s2_access').checked,
+      description: document.getElementById('s2_desc').value.trim()
+    };
+    ApOpenForm('/admin/round2/settings/save', payload);
+  }
+</script>
+{% endblock %}

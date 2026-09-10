@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Cyber Puzzle - Round 1{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2322D3EE'/><text x='16' y='22' text-anchor='middle' fill='%23060A12' font-size='15' font-weight='bold' font-family='monospace'>R1</text></svg>">
+</head>
+<body class="hx-frame">
+<div class="hx-crt" aria-hidden="true"></div>
+<div class="hx-phosphor" aria-hidden="true"></div>
+<div class="hx-secstrip" aria-hidden="true">
+  <div class="hx-sec-left">
+    <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+    <span class="hx-pipe">|</span>
+    <span class="hx-seg">R1 LAB</span>
+  </div>
+  <div class="hx-sec-center hx-seg"><span class="hx-cursor">CHALLENGE NODE</span></div>
+  <div class="hx-sec-right">
+    <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+  </div>
+</div>
+<div class="hud-stage">
+
+  <!-- Cinematic hacker scene (decorative background) -->
+  <div class="cyber-scene" aria-hidden="true">
+    <div class="cs-glows"></div>
+    <div class="cs-monitor cs-monitor-l"></div>
+    <div class="cs-monitor cs-monitor-r"></div>
+    <div class="cs-hood"></div>
+    <div class="cs-binary"></div>
+    <div class="cs-overlay"></div>
+  </div>
+
+  <!-- ===================== COMMAND HEADER ===================== -->
+  <header class="hud-topnav">
+    <div class="hud-topnav-inner">
+      <div class="hud-brand">
+        <span class="hud-brand-logo">R1</span>
+        <div>
+          <div class="hud-brand-name">Cyber<span>Puzzle</span></div>
+          <div class="hud-techline">THINK // EXPLOIT // SOLVE // SECURE</div>
+        </div>
+      </div>
+
+      <nav class="hud-center-nav">
+        <a href="{{ url_for('landing') }}" class="hud-nav-link">Home</a>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-nav-link {% if request.endpoint == 'r1.r1_dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('r1.r1_rules') }}" class="hud-nav-link {% if request.endpoint == 'r1.r1_rules' %}active{% endif %}">Rules</a>
+        <a href="{{ url_for('r1.r1_leaderboard') }}" class="hud-nav-link {% if request.endpoint == 'r1.r1_leaderboard' %}active{% endif %}">Leaderboard</a>
+      </nav>
+
+      <div class="hud-user">
+        {% if session_row and session_row.status == 'ACTIVE' and session_row.remaining_ms %}
+        <div class="hud-top-timer">
+          <span class="t-label">Time</span>
+          <span class="t-value" id="top-timer">--:--</span>
+        </div>
+        {% endif %}
+        {% if team %}
+        <div class="hud-team">
+          <div class="hud-team-name">{{ team.team_name }}</div>
+          <div class="hud-session-pill"><span class="dot"></span>R1</div>
+        </div>
+        <div class="hud-avatar">{{ (team.team_name or 'R1')[:1] | upper }}</div>
+        {% endif %}
+        <a href="{{ url_for('r1.r1_logout') }}" class="hud-logout">Logout</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== BODY + SIDEBAR ===================== -->
+  <div class="hud-body">
+    <aside class="hud-sidebar">
+      <div class="hud-side-section">
+        <div class="hud-side-title">Command</div>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-side-item {% if request.endpoint == 'r1.r1_dashboard' %}active{% endif %}">
+          <span class="hud-side-icon">&#9635;</span><span>Overview</span>
+        </a>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-side-item {% if request.endpoint in ('r1.r1_challenge','r1.r1_lab') %}active{% endif %}">
+          <span class="hud-side-icon">&#128295;</span><span>Challenge</span>
+        </a>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-side-item">
+          <span class="hud-side-icon">&#9654;</span><span>Progress</span>
+        </a>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-side-item">
+          <span class="hud-side-icon">&#9679;</span><span>Profile</span>
+        </a>
+      </div>
+      <div class="hud-side-section">
+        <div class="hud-side-title">Session</div>
+        <a href="{{ url_for('r1.r1_rules') }}" class="hud-side-item {% if request.endpoint == 'r1.r1_rules' %}active{% endif %}"><span class="hud-side-icon">?</span><span>Help</span></a>
+        <a href="{{ url_for('r1.r1_leaderboard') }}" class="hud-side-item {% if request.endpoint == 'r1.r1_leaderboard' %}active{% endif %}"><span class="hud-side-icon">&#9881;</span><span>Console</span></a>
+      </div>
+    </aside>
+
+    <main class="hud-main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {% if session_row and session_row.status == 'ACTIVE' and session_row.remaining_ms %}
+  <script>
+    (function() {
+      var endMs = new Date().getTime() + parseInt({{ session_row.remaining_ms }}, 10);
+      var el = document.getElementById('top-timer');
+      var warned10 = false, warned5 = false, warned1 = false, finished = false;
+      function pad(n){ return String(n).padStart(2,'0'); }
+      function finishRound(){
+        finished = true;
+        fetch('{{ url_for("r1.r1_timeup") }}', { method: 'POST' })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (d && d.ok && d.redirect) { window.location.href = d.redirect; }
+            else { window.location.reload(); }
+          })
+          .catch(function(){ window.location.reload(); });
+      }
+      function tick(){
+        var rem = endMs - new Date().getTime();
+        if (rem <= 0) {
+          el.textContent = '00:00';
+          el.style.color = 'var(--hud-red)';
+          if (!finished) { finishRound(); }
+          return;
+        }
+        var mins = Math.floor(rem/60000), secs = Math.floor((rem%60000)/1000);
+        el.textContent = pad(mins) + ':' + pad(secs);
+        if (el && !warned10 && rem <= 10*60000){ warned10=true; el.style.color='var(--hud-amber)'; }
+        if (!warned5 && rem <= 5*60000){ warned5=true; el.style.color='var(--hud-amber)'; }
+        if (!warned1 && rem <= 60000){ warned1=true; el.style.color='var(--hud-red)'; }
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+  {% endif %}
+  {% block scripts %}{% endblock %}
+</div>
+</body>
+</html>

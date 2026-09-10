@@ -1,0 +1,50 @@
+{% extends "r1_base.html" %}
+{% block title %}Rules - Cyber Puzzle{% endblock %}
+{% block content %}
+<div style="margin-bottom:26px;">
+  <div class="hud-kicker">KNOW THE GAME</div>
+  <h1 class="hud-h1" style="font-size:clamp(1.6rem,3vw,2.2rem);margin-top:6px;">Round 1 Rules</h1>
+</div>
+
+<div class="grid grid-2" style="gap:20px;">
+  <div class="hud-panel hud-panel-cn">
+    <div class="hud-panel-title">Setup</div>
+    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
+      <li>Each team registers with a unique Team ID.</li>
+      <li>Press <strong style="color:var(--hud-text);">Start</strong> to generate a random, server-assigned set of <strong style="color:var(--hud-text);">6 challenges</strong>.</li>
+      <li>Your 6 are drawn from across the <strong style="color:var(--hud-text);">12 cyber fundamentals</strong> categories.</li>
+      <li>Assignments are permanent: refreshing or logging back in resumes the same round.</li>
+    </ul>
+  </div>
+
+  <div class="hud-panel hud-panel-cn">
+    <div class="hud-panel-title">Timing &amp; Scoring</div>
+    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
+      <li>You have <strong style="color:var(--hud-text);">30 minutes</strong>, enforced server-side. Warnings at 10, 5, and 1 minute.</li>
+      <li>Each challenge is worth <strong style="color:var(--hud-text);">100 points</strong> (max 600).</li>
+      <li>Points are awarded only when the server validates a correct flag.</li>
+      <li>Resubmitting a solved challenge earns no extra points.</li>
+    </ul>
+  </div>
+
+  <div class="hud-panel hud-panel-cn">
+    <div class="hud-panel-title">Flags &amp; Answers</div>
+    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
+      <li>Submit the exact flag or answer the challenge requests.</li>
+      <li>Answers are matched case-insensitively and ignoring extra spaces.</li>
+      <li>Flags are stored only server-side and never revealed on the page.</li>
+      <li>Use the <strong style="color:var(--hud-text);">Hint</strong> button only if you are stuck.</li>
+    </ul>
+  </div>
+
+  <div class="hud-panel hud-panel-cn">
+    <div class="hud-panel-title">Conduct</div>
+    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
+      <li>Do not share flags or answers with other teams.</li>
+      <li>The timer, scoring, and validation are all handled by the server — tampering is not possible.</li>
+      <li>Repeat submissions are rate-limited to prevent spam.</li>
+      <li>Have fun and solve like a pro.</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

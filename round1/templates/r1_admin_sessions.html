@@ -1,0 +1,41 @@
+{% extends "r1_admin_base.html" %}
+{% block title %}Sessions - Cyber Puzzle Admin{% endblock %}
+{% block content %}
+<div class="admin-section-title">
+  <h2>Round Sessions</h2>
+  <p>All team sessions with server-side timing and scoring.</p>
+</div>
+
+<div class="table-wrapper" style="background:var(--surface, #12161f);border:1px solid var(--border);border-radius:var(--radius-lg, 12px);padding:8px 16px;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Session</th>
+        <th>Team</th>
+        <th>Started</th>
+        <th>Deadline</th>
+        <th>Completed</th>
+        <th>Status</th>
+        <th>Score</th>
+        <th>Solved</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td><span class="font-mono text-muted">#{{ s.id }}</span></td>
+        <td><span class="text-primary">{{ s.team_name }}</span></td>
+        <td><span class="font-mono text-muted">{{ s.started_at }}</span></td>
+        <td><span class="font-mono text-muted">{{ s.ends_at }}</span></td>
+        <td><span class="font-mono text-muted">{{ s.completed_at or '—' }}</span></td>
+        <td>
+          <span class="badge {{ 'badge-success' if s.status == 'COMPLETED' else ('badge-cyan' if s.status == 'ACTIVE' else 'badge-danger') }}">{{ s.status }}</span>
+        </td>
+        <td><span class="font-mono text-primary">{{ s.score }}</span></td>
+        <td><span class="font-mono">{{ s.challenges_solved }}/6</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

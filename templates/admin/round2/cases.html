@@ -1,0 +1,131 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Cases{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 &mdash; Cases</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Forensic case library (participants are assigned published cases only)</div>
+  </div>
+  <button class="ap-btn" onclick="openForm()">NEW CASE</button>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Case Library ({{ cases | length }})</h3></div>
+  {% if cases %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th></th><th>Case</th><th>Company</th><th>Status</th><th>Tasks</th><th>Evidence</th><th>Persons</th><th>Actions</th></tr>
+      {% for c in cases %}
+      <tr>
+        <td>
+          <div class="ap-row" style="gap:2px;">
+            <button class="ap-btn sm ghost" onclick="move({{ c.id }}, 'up')">&#9650;</button>
+            <button class="ap-btn sm ghost" onclick="move({{ c.id }}, 'down')">&#9660;</button>
+          </div>
+        </td>
+        <td class="cell-strong">
+          <a href="{{ url_for('admin_r2_case_detail', cid=c.id) }}" style="color:var(--ap-accent4);text-decoration:none;">{{ c.title }}</a>
+          <div class="ap-mono ap-muted" style="font-size:10px;">{{ c.case_code }}</div>
+        </td>
+        <td>{{ c.company or '—' }}</td>
+        <td>
+          <span class="ap-badge {{ 'success' if c.status == 'PUBLISHED' else ('warning' if c.status == 'DRAFT' else 'muted') }}">{{ c.status }}</span>
+        </td>
+        <td>{{ c.station_count }}</td>
+        <td>{{ c.evidence_count }}</td>
+        <td>{{ c.person_count }}</td>
+        <td>
+          <div class="ap-row" style="gap:6px;">
+            <button class="ap-btn sm ghost" onclick="setStatus({{ c.id }}, '{{ 'ARCHIVED' if c.status == 'PUBLISHED' else 'PUBLISHED' }}')">{{ 'ARCHIVE' if c.status == 'PUBLISHED' else 'PUBLISH' }}</button>
+            <a href="{{ url_for('admin_r2_case_detail', cid=c.id) }}" class="ap-btn sm ghost">MANAGE</a>
+            <a href="{{ url_for('admin_r2_case_preview', cid=c.id) }}" class="ap-btn sm ghost">PREVIEW</a>
+            <a href="{{ url_for('admin_r2_case_detail', cid=c.id) }}" class="ap-btn sm ghost">EDIT</a>
+            <button class="ap-btn sm danger" onclick="del({{ c.id }})">DELETE</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No cases yet. Create the first case.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openForm() {
+    document.getElementById('cmodalTitle').textContent = 'New Case';
+    document.getElementById('c_title').value = '';
+    document.getElementById('c_code').value = '';
+    document.getElementById('c_company').value = '';
+    document.getElementById('c_brief').value = '';
+    document.getElementById('c_difficulty').value = 'MEDIUM';
+    document.getElementById('c_status').value = 'DRAFT';
+    ApShowPanel('panel_c');
+  }
+  function save() {
+    var payload = {
+      title: document.getElementById('c_title').value.trim(),
+      case_code: document.getElementById('c_code').value.trim(),
+      company: document.getElementById('c_company').value.trim(),
+      case_brief: document.getElementById('c_brief').value.trim(),
+      difficulty: document.getElementById('c_difficulty').value,
+      status: document.getElementById('c_status').value
+    };
+    if (!payload.title) { apToast('Title is required.', true); return; }
+    ApOpenForm('/admin/round2/cases/save', payload);
+  }
+  function setStatus(id, st) { ApOpenForm('/admin/round2/cases/' + id + '/status', { status: st }); }
+  function del(id) {
+    if (!confirm('Delete/archive this case?')) return;
+    ApOpenForm('/admin/round2/cases/' + id + '/delete', {});
+  }
+  function move(id, dir) { ApOpenForm('/admin/round2/cases/' + id + '/reorder/' + dir, {}); }
+</script>
+{% endblock %}
+
+{% block modal %}
+<div class="ap-modal-panel" id="panel_c">
+    <div class="ap-modal-head">
+      <h3 id="cmodalTitle">Case</h3>
+      <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+    </div>
+    <div class="ap-form-grid">
+      <div class="ap-field">
+        <label>Title</label>
+        <input id="c_title">
+      </div>
+      <div class="ap-field">
+        <label>Case code</label>
+        <input id="c_code" placeholder="e.g. CASE-D">
+      </div>
+      <div class="ap-field">
+        <label>Company</label>
+        <input id="c_company">
+      </div>
+      <div class="ap-field">
+        <label>Difficulty / Status</label>
+        <div class="ap-row">
+          <select id="c_difficulty" style="flex:1;background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:8px;">
+            <option>EASY</option><option>MEDIUM</option><option>HARD</option>
+          </select>
+          <select id="c_status" style="flex:1;background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:8px;">
+            {% for s in statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="ap-field" style="grid-column:1 / -1;">
+        <label>Case brief / objective</label>
+        <textarea id="c_brief"></textarea>
+      </div>
+    </div>
+    <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+      <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+      <button class="ap-btn" onclick="save()">SAVE</button>
+    </div>
+</div>
+{% endblock %}

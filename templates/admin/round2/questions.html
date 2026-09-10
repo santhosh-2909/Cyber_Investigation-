@@ -1,0 +1,109 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Report Questions{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 &mdash; Report Questions</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Suspect identification for the final report</div>
+  </div>
+  <select onchange="location.href='/admin/round2/questions?case=' + this.value" style="background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:8px 10px;">
+    <option value="">SELECT CASE</option>
+    {% for c in cases %}
+    <option value="{{ c.id }}" {% if selected and selected|int == c.id %}selected{% endif %}>{{ c.title }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Persons {{ '(' + (persons|length)|string + ')' if selected else '' }}</h3>
+    {% if selected %}<button class="ap-btn sm" onclick="openForm()">ADD PERSON</button>{% endif %}
+  </div>
+  {% if persons %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Role</th><th>Key</th><th>Expected answers</th><th>Clue</th><th>Actions</th></tr>
+      {% for p in persons %}
+      <tr>
+        <td class="cell-strong">{{ p.role }}</td>
+        <td class="ap-mono">{{ p.person_key }}</td>
+        <td class="ap-mono">{{ p.answers | join(', ') }}</td>
+        <td>{{ p.clue or '—' }}</td>
+        <td>
+          <div class="ap-row" style="gap:6px;">
+            <button class="ap-btn sm ghost" onclick="edit({{ p.id }})">EDIT</button>
+            <button class="ap-btn sm danger" onclick="del({{ p.id }})">DELETE</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% elif selected %}
+  <div class="ap-empty">No persons for this case.</div>
+  {% else %}
+  <div class="ap-empty">Choose a case to manage its report persons.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var editing = null;
+  function openForm() {
+    editing = null;
+    ['p2_role','p2_key','p2_answers','p2_clue'].forEach(function (id) { document.getElementById(id).value = ''; });
+    ApShowPanel('panel_p');
+  }
+  function edit(id) {
+    editing = id;
+    fetch('/admin/round2/api/person/' + id).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { apToast(d.error || 'Not found', true); return; }
+        var p = d.item;
+        document.getElementById('p2_role').value = p.role || '';
+        document.getElementById('p2_key').value = p.person_key || '';
+        document.getElementById('p2_answers').value = (p.answers || []).join(', ');
+        document.getElementById('p2_clue').value = p.clue || '';
+        ApShowPanel('panel_p');
+      }).catch(function () { apToast('Load failed.', true); });
+  }
+  function save() {
+    var payload = {
+      case_id: {{ selected }},
+      role: document.getElementById('p2_role').value.trim(),
+      person_key: document.getElementById('p2_key').value.trim(),
+      answers: document.getElementById('p2_answers').value.trim(),
+      clue: document.getElementById('p2_clue').value.trim()
+    };
+    if (editing) payload.person_id = editing;
+    if (!payload.role) { apToast('Role is required.', true); return; }
+    ApOpenForm('/admin/round2/persons/save', payload);
+  }
+  function del(id) {
+    if (!confirm('Delete this person?')) return;
+    ApOpenForm('/admin/round2/persons/' + id + '/delete', {});
+  }
+</script>
+{% endblock %}
+
+{% block modal %}
+<div class="ap-modal-panel" id="panel_p">
+    <div class="ap-modal-head">
+      <h3>Report Person</h3>
+      <button class="ap-modal-close" onclick="ApCloseModal()">&times;</button>
+    </div>
+    <div class="ap-form-grid">
+      <div class="ap-field"><label>Role</label><input id="p2_role"></div>
+      <div class="ap-field"><label>Key</label><input id="p2_key"></div>
+      <div class="ap-field" style="grid-column:1 / -1;"><label>Expected answers (comma separated)</label><textarea id="p2_answers"></textarea></div>
+      <div class="ap-field" style="grid-column:1 / -1;"><label>Clue</label><textarea id="p2_clue"></textarea></div>
+    </div>
+    <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
+      <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>
+      <button class="ap-btn" onclick="save()">SAVE</button>
+    </div>
+</div>
+{% endblock %}

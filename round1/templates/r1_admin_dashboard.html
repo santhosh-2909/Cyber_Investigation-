@@ -1,0 +1,57 @@
+{% extends "r1_admin_base.html" %}
+{% block title %}Overview - Cyber Puzzle Admin{% endblock %}
+{% block content %}
+<div class="admin-section-title">
+  <h2>Round 1 Overview</h2>
+  <p>Live operational stats for the Cyber Puzzle.</p>
+</div>
+
+<div class="grid grid-2" style="gap:16px;margin-bottom:24px;">
+  <div class="admin-metric">
+    <div class="admin-metric-label">REGISTERED TEAMS</div>
+    <div class="admin-metric-value text-primary">{{ stats.teams }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">TOTAL SESSIONS</div>
+    <div class="admin-metric-value text-primary">{{ stats.sessions }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">ACTIVE ROUNDS</div>
+    <div class="admin-metric-value text-success">{{ stats.active }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">COMPLETED ROUNDS</div>
+    <div class="admin-metric-value text-cyan">{{ stats.completed }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">TOTAL SUBMISSIONS</div>
+    <div class="admin-metric-value text-primary">{{ stats.submissions }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">CORRECT FLAGS</div>
+    <div class="admin-metric-value text-success">{{ stats.correct }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">LABS OPENED</div>
+    <div class="admin-metric-value text-accent">{{ stats.labs_open }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">LABS COMPLETED</div>
+    <div class="admin-metric-value text-cyan">{{ stats.labs_completed }}</div>
+  </div>
+  <div class="admin-metric">
+    <div class="admin-metric-label">FLAGS REVEALED</div>
+    <div class="admin-metric-value text-warning">{{ stats.flags_revealed }}</div>
+  </div>
+</div>
+
+<div class="card" style="padding:20px;">
+  <div class="flex items-center justify-between" style="margin-bottom:12px;">
+    <span class="font-overline text-accent">CATALOG</span>
+    <span class="font-mono text-muted" style="font-size:0.75rem;">{{ stats.variants }} VARIANTS &middot; {{ stats.assignments }} ASSIGNMENTS</span>
+  </div>
+  <a href="{{ url_for('r1.r1_admin_statistics') }}" class="btn btn-subtle btn-sm">View lab &amp; challenge analytics</a>
+  <a href="{{ url_for('r1.r1_admin_export_assignments') }}" class="btn btn-subtle btn-sm" style="margin-left:8px;">Export assignments CSV</a>
+  <a href="{{ url_for('r1.r1_admin_export_events') }}" class="btn btn-subtle btn-sm" style="margin-left:8px;">Export lab events CSV</a>
+</div>
+{% endblock %}

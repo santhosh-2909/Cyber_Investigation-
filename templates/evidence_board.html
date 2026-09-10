@@ -1,56 +1,95 @@
 {% extends "base.html" %}
-{% block title %}Digital Evidence Board{% endblock %}
+{% block title %}Case Overview — {{ case.code }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h1 style="font-size:24px;">🖥️ Digital Evidence Board</h1>
-    <p class="muted">The verified findings connect into a visual attack chain. As you solve stations, the evidence links together.</p>
-</div>
-
-<div class="card">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
-        {% for node in board %}
-        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;min-width:150px;">
-            <div style="font-size:26px;">{{ node.icon }}</div>
-            <div style="font-weight:700;margin-top:6px;">{{ node.label }}</div>
-            <div class="muted" style="font-size:12px;margin-top:4px;">{{ node.detail }}</div>
-        </div>
-        {% if not loop.last %}
-        <div style="color:var(--accent);font-size:22px;font-weight:700;">→</div>
-        {% endif %}
-        {% endfor %}
+<div class="fs-shell">
+  <header class="fs-masthead">
+    <div class="file-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
     </div>
-</div>
+    <div>
+      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
+        <span class="fs-chip violet">{{ case.code }}</span>
+        <span class="fs-chip {% if stage == 'complete' %}ok{% else %}warn{% endif %}">{{ stage|upper }}</span>
+        <span class="hx-badge">CUSTODY OK</span>
+      </div>
+      <div class="mh-title">CASE OVERVIEW</div>
+      <div class="mh-sub">{{ case.title }} — {{ team.name }}</div>
+    </div>
+    <div class="mh-right">
+      <div class="fs-meter">
+        <span class="fs-overline">VERIFIED</span>
+        <div class="m-track"><div class="m-fill" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%"></div></div>
+        <span class="fs-mono" style="font-size:.72rem;color:var(--text-secondary);">{{ verified }}/{{ case.stations|length }}</span>
+      </div>
+      <a href="{{ url_for('evidence', station_id=case.stations[0].id) }}" class="btn btn-primary btn-sm">WORKSTATION</a>
+    </div>
+  </header>
 
-<div class="card">
-    <h2>🧳 Verified Findings So Far</h2>
-    <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+  <!-- Evidence chain -->
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+    <div class="fs-overline" style="margin-bottom:12px;"><strong>EVIDENCE CHAIN</strong> — ATTACK FLOW</div>
+    <div class="chain">
+      {% for node in board %}
+      {% set st = vault[loop.index0].state if vault and loop.index0 < vault|length else 'locked' %}
+      <div class="chain-node {{ 'cn-done' if st == 'verified' or st == 'reviewed' else 'cn-next' if st == 'opened' or st == 'analyzing' else 'cn-lock' }}">
+        <div class="cn-icon">{{ node.icon }}</div>
+        <div class="cn-label">{{ node.label }}</div>
+        <div class="cn-detail">{{ node.detail }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Verified findings table -->
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+    <div class="flex items-center justify-between" style="margin-bottom:14px;">
+      <div class="fs-overline"><strong>FINDINGS MATRIX</strong></div>
+      <div class="fs-mono" style="font-size:.6875rem;color:var(--text-muted);">{{ verified }} / {{ case.stations|length }} VERIFIED</div>
+    </div>
+    <div class="table-wrapper">
+      <table class="table">
         <thead>
-            <tr style="text-align:left;" class="muted">
-                <th style="padding:8px;border-bottom:1px solid var(--border);">Station</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border);">Your Finding</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border);">Status</th>
-            </tr>
+          <tr><th>STATION</th><th>DOMAIN</th><th>YOUR FINDING</th><th>STATUS</th></tr>
         </thead>
         <tbody>
-            {% for s in case.stations %}
-            <tr>
-                <td style="padding:8px;border-bottom:1px solid var(--border);">{{ s.id }} — {{ s.name }}</td>
-                <td style="padding:8px;border-bottom:1px solid var(--border);">
-                    {% if s.id in findings %}{{ findings[s.id].value }}{% else %}<span class="muted">—</span>{% endif %}
-                </td>
-                <td style="padding:8px;border-bottom:1px solid var(--border);">
-                    {% set f = findings.get(s.id) %}
-                    {% if f and f.status == 'verified' %}<span class="status-verified">✅ Verified</span>
-                    {% elif f and f.status == 'incorrect' %}<span class="status-incorrect">❌ Incorrect</span>
-                    {% else %}<span class="muted">Not attempted</span>{% endif %}
-                </td>
-            </tr>
-            {% endfor %}
+          {% for s in case.stations %}
+          {% set f = findings.get(s.id) %}
+          <tr>
+            <td>
+              <div class="flex items-center gap-sm">
+                <span class="vault-idx" style="width:28px;height:28px;font-size:.625rem;">{{ s.id }}</span>
+                <strong style="color:var(--text-primary);font-size:.875rem;">{{ s.name }}</strong>
+              </div>
+            </td>
+            <td><span class="badge badge-neutral">{{ s.domain }}</span></td>
+            <td>
+              {% if f %}
+              <span class="fs-mono" style="font-size:.8rem;color:var(--text-primary);">{{ f.value }}</span>
+              {% else %}
+              <span style="color:var(--text-dim);">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if f and f.status == 'verified' %}
+              <span class="fs-chip ok">VERIFIED</span>
+              {% elif f and f.status == 'incorrect' %}
+              <span class="fs-chip dead">INCORRECT</span>
+              {% else %}
+              <span class="fs-chip dim">PENDING</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
         </tbody>
-    </table>
-</div>
+      </table>
+    </div>
+  </div>
 
-<div style="text-align:center;margin-top:20px;">
-    <a href="{{ url_for('report') }}" class="btn green">Continue to Final Incident Report →</a>
+  <div class="text-center" style="margin-bottom:40px;">
+    <a href="{{ url_for('report') }}" class="btn btn-primary btn-lg">
+      CONTINUE TO FINAL REPORT
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
 </div>
 {% endblock %}

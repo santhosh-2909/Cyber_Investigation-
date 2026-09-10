@@ -1,0 +1,39 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin Audit Log{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Audit Log</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Full record of all administrative actions</div>
+  </div>
+  <a href="/admin/audit-log?format=csv" class="ap-btn ghost sm">EXPORT CSV</a>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">System Audit Trail ({{ entries | length }})</h3></div>
+  {% if entries %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Timestamp</th><th>User</th><th>Action</th><th>Target</th><th>Detail</th><th>Result</th></tr>
+      {% for e in entries %}
+      <tr>
+        <td><span class="ap-mono ap-muted" style="font-size:11px;">{{ e.created_at | ts }}</span></td>
+        <td><span class="ap-badge accent">{{ e.admin_user or 'admin' }}</span></td>
+        <td><span class="cell-strong">{{ e.action }}</span></td>
+        <td class="ap-mono">{{ e.target or '—' }}</td>
+        <td><span class="ap-muted" style="font-size:12px;">{{ e.detail or '—' }}</span></td>
+        <td>
+          {% if e.result == 'ok' or not e.result %}<span class="ap-success" style="font-size:12px;">OK</span>
+          {% else %}<span class="ap-warning" style="font-size:12px;">{{ e.result }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No audit entries yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

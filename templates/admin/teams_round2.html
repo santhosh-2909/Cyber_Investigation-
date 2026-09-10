@@ -1,0 +1,113 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Teams{% endblock %}
+{% block content %}
+
+{% set round_name = 'round2' %}
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 Team Members</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">{{ teams | length }} teams with Round 2 credentials</div>
+  </div>
+  <div class="ap-row">
+    <a href="{{ url_for('admin_teams_export', round='round2') }}" class="ap-btn ghost sm">EXPORT CSV</a>
+    <button class="ap-btn sm" onclick="ApOpenForm('/admin/teams/import', {round_name:'round2', csv: promptPaste()})">IMPORT CSV</button>
+  </div>
+</div>
+
+<div class="ap-panel ap-mb">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Add Round 2 Team</h3></div>
+  <div class="ap-form-grid">
+    <div class="ap-field">
+      <label>Team name</label>
+      <input id="r2Name" placeholder="e.g. Team Alpha">
+    </div>
+    <div class="ap-field">
+      <label>Round 2 ID (unique)</label>
+      <input id="r2Id" placeholder="e.g. R2-ALPHA-9">
+    </div>
+    <div class="ap-field" style="justify-content:flex-end;">
+      <button class="ap-btn" onclick="addRoundTeam()">ADD TEAM</button>
+    </div>
+  </div>
+  <p class="ap-muted" style="font-size:11px;margin:0;">Participants sign in to Round 2 with Team Name + this ID. A team that only has a Round 2 ID cannot sign in to Round 1.</p>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head">
+    <h3 class="ap-panel-title">Round 2 Roster</h3>
+    <button class="ap-btn danger sm" onclick="clearAll()">CLEAR ROUND 2 LOGINS</button>
+  </div>
+  {% if teams %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Team</th><th>Round 2 ID</th><th>Enrollment</th><th>Online</th><th>Last login</th><th>Actions</th></tr>
+      {% for t in teams %}
+      <tr>
+        <td class="cell-strong">
+          {{ t.team_name }}
+          <div class="ap-mono ap-muted" style="font-size:10px;">#{{ t.id }}</div>
+        </td>
+        <td>
+          <span class="ap-mono">{{ t.access_id }}</span>
+          <button class="ap-btn sm ghost" style="margin-left:6px;" onclick="rotateId({{ t.id }})" title="Rotate ID">ROTATE</button>
+        </td>
+        <td>
+          <span class="ap-badge {{ 'success' if t.login_enabled else 'danger' }}">
+            {{ 'ENABLED' if t.login_enabled else 'DISABLED' }}
+          </span>
+          <button class="ap-btn sm ghost" style="margin-left:6px;" onclick="toggleTeam({{ t.id }})">TOGGLE</button>
+        </td>
+        <td>{{ t.online_sessions }}/{{ t.active_sessions }}</td>
+        <td class="ap-mono">{{ t.last_login | ts }}</td>
+        <td>
+          <div class="ap-row" style="gap:6px;">
+            <a href="{{ url_for('admin_team_profile', team_db_id=t.id) }}" class="ap-btn sm ghost">PROFILE</a>
+            <button class="ap-btn sm ghost" onclick="clearLogin({{ t.id }})">END SESSION</button>
+            <button class="ap-btn sm danger" onclick="resetTeam({{ t.id }})">RESET</button>
+            <button class="ap-btn sm danger" onclick="delTeam({{ t.id }})">DELETE</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No Round 2 teams yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var R = 'round2';
+  function addRoundTeam() {
+    var name = document.getElementById('r2Name').value.trim();
+    var id = document.getElementById('r2Id').value.trim();
+    if (!name || !id) { apToast('Enter team name and ID.', true); return; }
+    ApOpenForm('/admin/teams/round/add', { round_name: R, team_name: name, access_id: id });
+  }
+  function toggleTeam(id) { ApOpenForm('/admin/teams/' + id + '/round/' + R + '/toggle', {}); }
+  function resetTeam(id) {
+    if (!confirm('Reset this team\'s ' + R + ' progress?')) return;
+    ApOpenForm('/admin/teams/' + id + '/round/' + R + '/reset', {});
+  }
+  function clearLogin(id) { ApOpenForm('/admin/logins/clear', { team_db_id: id, round_name: R }); }
+  function clearAll() {
+    if (!confirm('End ALL active Round 2 sessions?')) return;
+    ApOpenForm('/admin/logins/clear-all', { round_name: R });
+  }
+  function rotateId(id) {
+    var v = prompt('New Round 2 ID for team #' + id + ':');
+    if (!v) return;
+    ApOpenForm('/admin/teams/' + id + '/round/' + R + '/access-id', { access_id: v.trim() });
+  }
+  function delTeam(id) {
+    if (!confirm('Permanently delete this team and ALL its progress?\nThis cannot be undone.')) return;
+    ApOpenForm('/admin/teams/' + id + '/delete', {});
+  }
+  function promptPaste() {
+    return window.prompt('Paste CSV rows: team_name, access_id (one per line)') || '';
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "admin_base.html" %}
+{% block title %}Answer Submissions{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Answer Submissions</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Round 1 challenge answers with validation result</div>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Round 1 Submissions ({{ submissions | length }})</h3></div>
+  {% if submissions %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Time</th><th>Team</th><th>Challenge</th><th>Variant</th><th>Submitted answer</th><th>Result</th></tr>
+      {% for s in submissions %}
+      <tr>
+        <td><span class="ap-mono ap-muted" style="font-size:11px;">{{ s.submitted_at | ts }}</span></td>
+        <td class="cell-strong">{{ s.team_name }}</td>
+        <td>{{ s.item }}<div class="ap-mono ap-muted" style="font-size:10px;">{{ s.challenge_code }}</div></td>
+        <td class="ap-mono">{{ s.variant_code }}</td>
+        <td class="ap-mono" style="max-width:260px;">{{ s.submitted_answer }}</td>
+        <td>
+          {% if s.is_correct %}
+          <span class="ap-badge success">CORRECT</span>
+          {% else %}
+          <span class="ap-badge warning">WRONG</span>
+          {% endif %}
+          <span class="ap-muted" style="font-size:11px;">attempt {{ s.attempt_number }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No submissions yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

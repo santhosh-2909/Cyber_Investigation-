@@ -1,0 +1,54 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 2 Scoring{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 2 &mdash; Scoring</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">Scoring overview per case</div>
+  </div>
+  <span class="ap-status-pill" style="background:rgba(108,43,255,0.12);color:var(--ap-accent4);">MODE: {{ r2.scoring_mode }}</span>
+</div>
+
+<div class="ap-cards">
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Cases</span>
+    <span class="ap-stat-value accent">{{ cases | length }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Max task attempts</span>
+    <span class="ap-stat-value">{{ r2.max_attempts }}</span>
+  </div>
+  <div class="ap-card ap-stat">
+    <span class="ap-stat-label">Timer</span>
+    <span class="ap-stat-value warning">{{ r2.timer_minutes }} min</span>
+  </div>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Case Point Values</h3></div>
+  {% if cases %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Case</th><th>Company</th><th>Status</th><th>Tasks</th><th>Case points</th></tr>
+      {% for c in cases %}
+      <tr>
+        <td class="cell-strong">{{ c.title }}<div class="ap-mono ap-muted" style="font-size:10px;">{{ c.case_code }}</div></td>
+        <td>{{ c.company or '—' }}</td>
+        <td><span class="ap-badge {{ 'success' if c.status == 'PUBLISHED' else ('warning' if c.status == 'DRAFT' else 'muted') }}">{{ c.status }}</span></td>
+        <td>{{ c.station_count }}</td>
+        <td class="cell-strong accent">{{ c.points }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No cases yet.</div>
+  {% endif %}
+</div>
+
+<p class="ap-muted" style="font-size:11px;">
+  Task-level points are configured per investigation task. Open a case to adjust individual task points.
+</p>
+
+{% endblock %}

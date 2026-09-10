@@ -1,0 +1,60 @@
+{% extends "admin_base.html" %}
+{% block title %}Round 1 Answer Validation{% endblock %}
+{% block content %}
+
+<div class="ap-toolbar">
+  <div>
+    <h1 style="font-size:22px;color:var(--ap-text);margin:0;">Round 1 &mdash; Answer Validation</h1>
+    <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">How each question compares participant answers</div>
+  </div>
+  <button class="ap-btn" onclick="saveModes()">SAVE ALL MODES</button>
+</div>
+
+<div class="ap-panel">
+  <div class="ap-panel-head"><h3 class="ap-panel-title">Validation Modes</h3></div>
+  {% if variants %}
+  <div class="ap-table-wrap">
+    <table class="ap-table">
+      <tr><th>Challenge</th><th>Variant</th><th>Question</th><th>Mode</th></tr>
+      {% for v in variants %}
+      <tr>
+        <td class="cell-strong">{{ v.category_title }}</td>
+        <td class="ap-mono">{{ v.variant_code }}</td>
+        <td style="max-width:380px;">{{ v.question }}</td>
+        <td>
+          <select class="vmode" data-id="{{ v.id }}" style="background:var(--ap-bg1);border:1px solid rgba(108,43,255,.25);color:var(--ap-text);border-radius:8px;padding:7px 9px;">
+            <option value="NORMALIZED" {% if v.validation_mode == 'NORMALIZED' %}selected{% endif %}>NORMALIZED</option>
+            <option value="EXACT" {% if v.validation_mode == 'EXACT' %}selected{% endif %}>EXACT</option>
+            <option value="CONTAINS" {% if v.validation_mode == 'CONTAINS' %}selected{% endif %}>CONTAINS</option>
+            <option value="CASE_SENSITIVE" {% if v.validation_mode == 'CASE_SENSITIVE' %}selected{% endif %}>CASE_SENSITIVE</option>
+          </select>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="ap-empty">No questions to configure.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function saveModes() {
+    var modes = {};
+    document.querySelectorAll('.vmode').forEach(function (s) {
+      modes[s.getAttribute('data-id')] = s.value;
+    });
+    fetch('/admin/round1/validation/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modes: modes })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok) { apToast('Saved ' + d.saved + ' modes'); setTimeout(function () { location.reload(); }, 400); }
+      else apToast(d.error || 'Failed', true);
+    });
+  }
+</script>
+{% endblock %}

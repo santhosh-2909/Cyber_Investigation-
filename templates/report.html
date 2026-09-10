@@ -1,46 +1,106 @@
 {% extends "base.html" %}
-{% block title %}Final Incident Report{% endblock %}
+{% block title %}Final Incident Report — {{ case.code }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h1 style="font-size:24px;">🧠 Final Incident Report</h1>
-    <p class="muted">Identify the persons involved by name in the input fields below. Support each identification with evidence.</p>
-</div>
+<div class="fs-shell">
+  <header class="fs-masthead">
+    <div class="file-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+    </div>
+    <div>
+      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
+        <span class="fs-chip violet">{{ case.code }}</span>
+        <span class="fs-chip warn">FINAL REPORT</span>
+        <span class="hx-badge amber">SUBMISSION FINAL</span>
+      </div>
+      <div class="mh-title">FINAL INCIDENT REPORT</div>
+      <div class="mh-sub">Identify the persons involved by name. Support each identification with evidence.</div>
+    </div>
+    <div class="mh-right">
+      <div class="fs-meter">
+        <span class="fs-overline">EVIDENCE</span>
+        <div class="m-track"><div class="m-fill" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%"></div></div>
+        <span class="fs-mono" style="font-size:.72rem;color:var(--text-secondary);">{{ verified }}/{{ case.stations|length }} VERIFIED</span>
+      </div>
+    </div>
+  </header>
 
-<form method="POST">
-    <div class="card">
-        <h2>🕵️ WHO DONE IT? — Identify the Persons</h2>
-        <p class="muted" style="font-size:13px;margin:6px 0 12px;">Enter the name of each person. A suspect roster is hinted in the case narrative and evidence.</p>
-        {% for person in case.persons %}
-        {% set prev = persons.get(person.key, {}) %}
-        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
-            <div style="font-weight:700;">{{ person.role }}</div>
-            <div class="muted" style="font-size:13px;margin:4px 0 10px;">Clue: {{ person.clue }}</div>
-            <input type="text" name="person_{{ person.key }}" value="{{ prev.get('value','') }}" placeholder="Enter the person's name..."
-                style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:15px;margin-bottom:8px;">
-            <textarea name="evidence_{{ person.key }}" rows="2" placeholder="Supporting evidence pointing to this person..."
-                style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:13px;resize:vertical;">{{ prev.get('evidence','') }}</textarea>
+  <form method="POST">
+    <!-- WHO DID IT -->
+    <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+      <div class="flex items-center gap-sm" style="margin-bottom:14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="fs-overline"><strong>WHO DID IT?</strong> — IDENTIFY PERSONS</div>
+      </div>
+      <p class="fs-mono" style="font-size:.72rem;color:var(--text-muted);margin-bottom:18px;">A suspect roster is hinted in the case narrative and evidence.</p>
+
+      {% for person in case.persons %}
+      {% set prev = persons.get(person.key, {}) if persons is defined else {} %}
+      {% set pstatus = prev.get('status') if prev else none %}
+      <div class="fs-card" style="padding:18px 20px;margin-bottom:12px;border-left:3px solid {{ 'var(--success)' if pstatus == 'verified' else 'var(--danger)' if pstatus == 'incorrect' else 'var(--accent-border)' }};">
+        <div class="flex items-center gap-md" style="margin-bottom:14px;flex-wrap:wrap;">
+          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--warning-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:.9375rem;color:var(--text-primary);">{{ person.role }}</div>
+            <div class="fs-mono" style="font-size:.652rem;color:var(--text-muted);">CLUE: {{ person.clue }}</div>
+          </div>
+          {% if pstatus %}
+          <span class="fs-chip {{ 'ok' if pstatus == 'verified' else 'dead' if pstatus == 'incorrect' else 'dim' }}">{{ pstatus|upper }}</span>
+          {% else %}
+          <span class="fs-chip dim">PENDING</span>
+          {% endif %}
         </div>
-        {% endfor %}
+
+        <div class="form-group">
+          <label class="form-label">PERSON NAME</label>
+          <input type="text" name="person_{{ person.key }}" value="{{ prev.get('value','') if prev else '' }}" placeholder="Enter the person's name..." class="form-input">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">SUPPORTING EVIDENCE</label>
+          <textarea name="evidence_{{ person.key }}" rows="2" placeholder="What evidence points to this person?" class="form-textarea">{{ prev.get('evidence','') if prev else '' }}</textarea>
+        </div>
+      </div>
+      {% endfor %}
     </div>
 
-    <div class="card">
-        <h2>📝 Investigation Details</h2>
-        <div style="margin-bottom:14px;">
-            <label class="muted" style="font-weight:600;display:block;margin-bottom:6px;">1. Initial Entry Point</label>
-            <textarea name="entry_point" rows="2" placeholder="How did the attacker enter the organization?" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px;resize:vertical;">{{ session.get('report',{}).get('entry_point','') }}</textarea>
-        </div>
-        <div style="margin-bottom:14px;">
-            <label class="muted" style="font-weight:600;display:block;margin-bottom:6px;">2. Attack Timeline</label>
-            <textarea name="timeline" rows="3" placeholder="Reconstruct the sequence of events." style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px;resize:vertical;">{{ session.get('report',{}).get('timeline','') }}</textarea>
-        </div>
+    <!-- Investigation summary -->
+    <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+      <div class="flex items-center gap-sm" style="margin-bottom:14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <div class="fs-overline"><strong>INVESTIGATION SUMMARY</strong> — REPORT BODY</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">1. INITIAL ENTRY POINT</label>
+        <textarea name="entry_point" rows="3" placeholder="How did the attacker enter the organization? Describe the initial compromise vector." class="form-textarea">{{ session.get('report',{}).get('entry_point','') if session.get('report') else '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">2. ATTACK TIMELINE</label>
+        <textarea name="timeline" rows="4" placeholder="Reconstruct the sequence of events with timestamps. Include key milestones from initial access to final impact." class="form-textarea">{{ session.get('report',{}).get('timeline','') if session.get('report') else '' }}</textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">3. FINAL CONCLUSION</label>
+        <textarea name="conclusion" rows="5" placeholder="Explain the complete attack chain using supporting evidence. Identify all actors and their roles." class="form-textarea">{{ session.get('report',{}).get('conclusion','') if session.get('report') else '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Submission warning -->
+    <div class="fs-card" style="padding:16px 20px;margin-bottom:18px;border-color:rgba(255,176,32,0.4);border-style:dashed;">
+      <div class="flex items-center gap-md">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <div>
-            <label class="muted" style="font-weight:600;display:block;margin-bottom:6px;">3. Final Conclusion</label>
-            <textarea name="conclusion" rows="4" placeholder="Explain the complete attack chain using supporting evidence." style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px;resize:vertical;">{{ session.get('report',{}).get('conclusion','') }}</textarea>
+          <strong style="color:var(--warning);">SUBMISSION WARNING</strong>
+          <p style="font-size:.8125rem;color:var(--text-muted);margin-top:2px;">Submission is final for this case. Review your findings before submitting.</p>
         </div>
+      </div>
     </div>
 
-    <div style="text-align:center;margin-top:16px;">
-        <button type="submit" class="btn green" style="padding:14px 28px;font-size:15px;">Submit Report & View Score →</button>
+    <div class="text-center" style="margin-bottom:40px;">
+      <button type="submit" class="btn btn-success btn-xl">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+        SUBMIT FINAL REPORT
+      </button>
     </div>
-</form>
+  </form>
+</div>
 {% endblock %}

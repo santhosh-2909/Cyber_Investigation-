@@ -1,0 +1,423 @@
+{% extends "admin_base.html" %}
+{% block title %}Access Control Center - Admin{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-xl flex-wrap" style="gap:12px;">
+  <div class="animate-slide-up">
+    <h1 style="font-size:2rem;">ADMIN CONTROL CENTER</h1>
+    <p class="text-secondary" style="margin-top:4px;">Provision team access and manage live participant sessions in real time.</p>
+  </div>
+  <div class="animate-slide-up">
+    <button class="btn btn-primary" onclick="showTeamModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      ADD TEAM
+    </button>
+  </div>
+</div>
+
+<div class="grid grid-2 mb-xl animate-slide-up stagger-1">
+  <a href="{{ url_for('admin_team_logins', round_name='round1') }}" class="card" style="text-decoration:none;color:inherit;border-color:rgba(155,77,255,.34);">
+    <div class="font-overline text-accent">ROUND 01 LOGIN DESK</div>
+    <h3 style="margin-top:8px;">CYBER PUZZLE CREDENTIALS →</h3>
+    <p class="text-secondary" style="margin-top:8px;font-size:.85rem;">Issue and view the dedicated Round 1 access IDs.</p>
+  </a>
+  <a href="{{ url_for('admin_team_logins', round_name='round2') }}" class="card" style="text-decoration:none;color:inherit;border-color:rgba(34,211,238,.34);">
+    <div class="font-overline text-cyan">ROUND 02 LOGIN DESK</div>
+    <h3 style="margin-top:8px;">FORENSICS CREDENTIALS →</h3>
+    <p class="text-secondary" style="margin-top:8px;font-size:.85rem;">Issue and view the independent Round 2 access IDs.</p>
+  </a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1 : TEAM ACCESS MANAGEMENT -->
+<!-- ============================================================ -->
+<div class="card animate-slide-up stagger-2 mb-xl">
+  <div class="card-header">
+    <h3>1 · TEAM ACCESS MANAGEMENT</h3>
+    <div class="flex items-center gap-sm">
+      <input type="text" class="form-input" style="max-width:240px;" placeholder="Search team..." oninput="filterTeams(this.value)">
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table" id="teams-table">
+      <thead>
+        <tr>
+          <th>TEAM NAME</th>
+          <th>TEAM ID</th>
+          <th>STATUS</th>
+          <th>ACTIVE SESSION</th>
+          <th>CREATED</th>
+          <th style="text-align:right;">ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in teams %}
+        <tr data-id="{{ t.id }}" data-name="{{ t.team_name }}" data-code="{{ t.team_id }}" data-names="{{ t.participant_names or '' }}" data-active="{{ 1 if t.is_active else 0 }}">
+          <td><strong style="color:var(--text-primary);">{{ t.team_name }}</strong></td>
+          <td><span class="font-mono text-muted" style="font-size:0.75rem;">{{ t.team_id }}</span></td>
+          <td>
+            <span class="badge {% if t.is_active %}badge-success badge-dot{% else %}badge-neutral{% endif %}">
+              {{ 'ACTIVE' if t.is_active else 'DISABLED' }}
+            </span>
+          </td>
+          <td>
+            {% if t.online_sessions %}
+              <span class="badge badge-cyan badge-dot">ONLINE</span>
+            {% elif t.active_sessions %}
+              <span class="badge badge-neutral badge-dot">OFFLINE</span>
+            {% else %}
+              <span class="font-mono text-muted" style="font-size:0.7rem;">NO SESSION</span>
+            {% endif %}
+          </td>
+          <td><span class="font-mono text-muted" style="font-size:0.6875rem;" data-created="{{ t.created_at }}">...</span></td>
+          <td>
+            <div class="flex items-center gap-xs justify-end">
+              {% if t.active_sessions %}
+              <button class="btn btn-danger btn-sm" onclick="clearLogin({{ t.id }}, '{{ t.team_name }}')">CLEAR LOGIN</button>
+              {% endif %}
+              {% if t.is_active %}
+              <button class="action-btn" title="Disable team access" onclick="toggleTeam({{ t.id }}, false)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </button>
+              {% else %}
+              <button class="action-btn" title="Enable team access" onclick="toggleTeam({{ t.id }}, true)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M12 15v3"/></svg>
+              </button>
+              {% endif %}
+              <button class="action-btn danger" title="Delete team (separate from Clear Login)" onclick="deleteTeam({{ t.id }}, '{{ t.team_name }}')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+              <button class="action-btn" title="Edit team" onclick="editTeam({{ t.id }})">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted" style="padding:28px;">No teams yet. Use the ADD TEAM button to authorize the first team.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 2 : ACTIVE PARTICIPANT LOGINS -->
+<!-- ============================================================ -->
+<div class="card animate-slide-up stagger-3 mb-xl">
+  <div class="card-header">
+    <h3>2 · ACTIVE PARTICIPANT LOGINS <span class="badge badge-cyan badge-dot">{{ active_logins|length }}</span></h3>
+    <div class="flex items-center gap-sm flex-wrap" style="justify-content:center;">
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_dashboard') }}">REFRESH</a>
+      <button class="btn btn-subtle btn-sm" id="select-all-btn" onclick="toggleSelectAll()">SELECT ALL</button>
+      <button class="btn btn-primary btn-sm" id="clear-selected-btn" onclick="clearSelectedLogins()" disabled>CLEAR SELECTED</button>
+      <button class="btn btn-danger btn-sm" onclick="clearAllLogins()">CLEAR ALL ACTIVE LOGINS</button>
+    </div>
+  </div>
+
+  {% if active_logins %}
+  <div class="table-wrapper">
+    <table class="table" id="logins-table">
+      <thead>
+        <tr>
+          <th style="width:36px;"><input type="checkbox" id="select-all" onchange="selectAllFromCheckbox(this.checked)"></th>
+          <th>TEAM NAME</th>
+          <th>TEAM ID</th>
+          <th>LOGIN TIME</th>
+          <th>LAST SEEN</th>
+          <th>STATUS</th>
+          <th style="text-align:right;">ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in active_logins %}
+        <tr>
+          <td><input type="checkbox" class="login-check" value="{{ l.team_id }}" onchange="onRowSelect()"></td>
+          <td><strong style="color:var(--text-primary);">{{ l.team_name }}</strong></td>
+          <td><span class="font-mono text-muted" style="font-size:0.75rem;">{{ l.team_code }}</span></td>
+          <td><span class="font-mono text-muted" style="font-size:0.75rem;" data-ts="{{ l.login_time }}">...</span></td>
+          <td><span class="font-mono text-muted" style="font-size:0.75rem;" data-ts="{{ l.last_seen }}">...</span></td>
+          <td>
+            <span class="badge {% if l.state == 'ONLINE' %}badge-success badge-dot{% else %}badge-neutral badge-dot{% endif %}">
+              {{ l.state }}
+            </span>
+          </td>
+          <td>
+            <div class="flex items-center gap-xs justify-end">
+              <button class="btn btn-danger btn-sm" onclick="clearLogin({{ l.team_id }}, '{{ l.team_name }}')">CLEAR LOGIN</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center text-muted" style="padding:34px;">
+    <div class="font-mono" style="font-size:0.8rem;letter-spacing:0.08em;">NO ACTIVE PARTICIPANT LOGINS</div>
+    <p class="text-secondary" style="margin-top:8px;font-size:0.875rem;">Logins appear here the moment a team signs in with a valid Team Name + Team ID. Sessions idle for 24 hours are auto-cleared.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 3 : ROUND / SYSTEM STATUS -->
+<!-- ============================================================ -->
+<div class="card animate-slide-up stagger-4 mb-xl">
+  <div class="card-header">
+    <h3>3 · ROUND / SYSTEM STATUS</h3>
+    <span class="badge badge-success badge-dot">ALL SYSTEMS NOMINAL</span>
+  </div>
+  <div class="grid grid-3">
+  <div class="admin-metric animate-slide-up stagger-4">
+    <div class="admin-metric-label">ROUND 1 · CYBER PUZZLE</div>
+    <div class="admin-metric-value text-primary">ENABLED</div>
+    <span class="badge badge-success badge-dot" style="margin-top:8px;">MIXED FUNDAMENTALS</span>
+  </div>
+  <div class="admin-metric animate-slide-up stagger-5">
+    <div class="admin-metric-label">ROUND 2 · CYBER DETECTIVE</div>
+    <div class="admin-metric-value text-primary">ENABLED</div>
+    <span class="badge badge-success badge-dot" style="margin-top:8px;">DIGITAL FORENSICS</span>
+  </div>
+  <div class="admin-metric animate-slide-up stagger-6">
+    <div class="admin-metric-label">AUTHORIZED TEAMS</div>
+    <div class="admin-metric-value text-primary">{{ status.teams }}</div>
+    <div class="font-mono" style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">{{ status.enabled }} ENABLED</div>
+  </div>
+</div>
+
+<div class="grid grid-4 mb-xl">
+  <div class="admin-metric animate-slide-up stagger-1">
+    <div class="admin-metric-label">LIVE TEAM LOGINS</div>
+    <div class="admin-metric-value text-success">{{ status.live_logins }}</div>
+    <div class="font-mono" style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">ACTIVE NOW (5 MIN WINDOW)</div>
+  </div>
+  <div class="admin-metric animate-slide-up stagger-2">
+    <div class="admin-metric-label">VALID SESSIONS</div>
+    <div class="admin-metric-value text-cyan">{{ status.total_logins }}</div>
+    <div class="font-mono" style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">INCLUDING OFFLINE</div>
+  </div>
+  <div class="admin-metric animate-slide-up stagger-3">
+    <div class="admin-metric-label">ROUND 1 SESSIONS</div>
+    <div class="admin-metric-value text-accent">{{ status.r1_sessions }}</div>
+    <div class="font-mono" style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">{{ status.r1_active }} IN PROGRESS · {{ status.r1_completed }} COMPLETED</div>
+  </div>
+  </div>
+</div>
+
+<!-- Add team modal -->
+<div class="modal-backdrop" id="team-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>ADD NEW TEAM</h3>
+      <button class="btn btn-subtle btn-sm" onclick="closeTeamModal()">&times;</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">TEAM NAME <span style="color:var(--danger);">*</span></label>
+      <input type="text" id="nt-name" class="form-input" placeholder="e.g. Cyber Titans">
+    </div>
+    <div class="form-group">
+      <label class="form-label">TEAM ID <span style="color:var(--danger);">*</span></label>
+      <input type="text" id="nt-id" class="form-input form-input-mono" placeholder="e.g. CT2026-001">
+    </div>
+    <div class="text-secondary" style="font-size:0.8rem;margin-bottom:16px;">The team signs in using exactly these two values. Team IDs are unique and case-insensitive.</div>
+    <div class="flex justify-end gap-sm mt-lg">
+      <button class="btn btn-ghost" onclick="closeTeamModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="addTeam()">CREATE TEAM</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit team modal -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>EDIT TEAM</h3>
+      <button class="btn btn-subtle btn-sm" onclick="closeEditModal()">&times;</button>
+    </div>
+    <input type="hidden" id="et-id">
+    <div class="form-group">
+      <label class="form-label">TEAM NAME <span style="color:var(--danger);">*</span></label>
+      <input type="text" id="et-name" class="form-input" placeholder="e.g. Cyber Titans">
+    </div>
+    <div class="form-group">
+      <label class="form-label">TEAM ID <span style="color:var(--danger);">*</span></label>
+      <input type="text" id="et-id-code" class="form-input form-input-mono" placeholder="e.g. CT2026-001">
+    </div>
+    <div class="form-group">
+      <label class="form-label">SQUAD / PARTICIPANTS</label>
+      <input type="text" id="et-names" class="form-input" placeholder="e.g. Zara, Arjun, Meera">
+    </div>
+    <div class="form-group">
+      <label class="form-label" style="display:block;margin-bottom:8px;">ACCESS STATUS</label>
+      <label class="flex items-center gap-sm" style="cursor:pointer;">
+        <input type="checkbox" id="et-active" style="width:16px;height:16px;">
+        <span class="text-secondary" style="font-size:0.85rem;">Team access is <strong id="et-active-label">ENABLED</strong></span>
+      </label>
+    </div>
+    <div class="flex justify-end gap-sm mt-lg">
+      <button class="btn btn-ghost" onclick="closeEditModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveTeamEdit()">SAVE CHANGES</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fmtDateTime(ms){
+  if (!ms) return 'N/A';
+  var d = new Date(ms);
+  var p = function(n){ return String(n).padStart(2,'0'); };
+  return d.toLocaleDateString() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+function fmtDate(ms){
+  if (!ms) return 'N/A';
+  var d = new Date(ms);
+  return d.toLocaleDateString();
+}
+document.querySelectorAll('[data-ts]').forEach(function(el){ el.textContent = fmtDateTime(el.dataset.ts); });
+document.querySelectorAll('[data-created]').forEach(function(el){ el.textContent = fmtDate(el.dataset.created); });
+
+function showTeamModal(){ document.getElementById('team-modal').classList.add('active'); }
+function closeTeamModal(){ document.getElementById('team-modal').classList.remove('active'); }
+
+function post(url, body, cb){
+  fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body || {})
+  }).then(function(r){
+    return r.json().then(function(j){ return {ok: r.ok, j: j, s: r.status}; });
+  }).then(function(res){
+    if (!res.ok) cb(new Error((res.j && res.j.error) || 'Request failed'));
+    else cb(null, res.j);
+  }).catch(function(e){ cb(e); });
+}
+
+function addTeam(){
+  var name = document.getElementById('nt-name').value.trim();
+  var id = document.getElementById('nt-id').value.trim();
+  if (!name){ showToast('Enter a team name.', 'warning'); return; }
+  if (!id){ showToast('Enter a team ID.', 'warning'); return; }
+  post("{{ url_for('admin_team_add') }}", {team_name: name, team_id: id}, function(err, res){
+    if (err){ showToast(err.message || 'Failed to create team.', 'error'); return; }
+    closeTeamModal();
+    showToast('Team created successfully.', 'success');
+    setTimeout(function(){ location.reload(); }, 700);
+  });
+}
+
+function toggleTeam(id, desired){
+  post("{{ url_for('admin_team_toggle', team_db_id=0) }}".replace('/0','/' + id), {}, function(err, res){
+    if (err){ showToast(err.message || 'Failed to update access.', 'error'); return; }
+    showToast(res.active ? 'Team access enabled.' : 'Team access disabled.', 'success');
+    setTimeout(function(){ location.reload(); }, 500);
+  });
+}
+
+function editTeam(id){
+  var tr = document.querySelector('tr[data-id="'+id+'"]');
+  if (!tr){ showToast('Team not found.', 'error'); return; }
+  var active = tr.dataset.active === '1';
+  document.getElementById('et-id').value = id;
+  document.getElementById('et-name').value = tr.dataset.name;
+  document.getElementById('et-id-code').value = tr.dataset.code;
+  document.getElementById('et-names').value = tr.dataset.names;
+  document.getElementById('et-active').checked = active;
+  document.getElementById('et-active-label').textContent = active ? 'ENABLED' : 'DISABLED';
+  document.getElementById('edit-modal').classList.add('active');
+}
+function closeEditModal(){ document.getElementById('edit-modal').classList.remove('active'); }
+
+function saveTeamEdit(){
+  var id = document.getElementById('et-id').value;
+  var name = document.getElementById('et-name').value.trim();
+  var code = document.getElementById('et-id-code').value.trim();
+  var names = document.getElementById('et-names').value.trim();
+  var active = document.getElementById('et-active').checked;
+  if (!name){ showToast('Enter a team name.', 'warning'); return; }
+  if (!code){ showToast('Enter a team ID.', 'warning'); return; }
+  post("{{ url_for('admin_team_edit', team_db_id=0) }}".replace('/0','/' + id),
+       {team_name: name, team_id: code, participant_names: names, is_active: active},
+       function(err, res){
+    if (err){ showToast(err.message || 'Failed to update team.', 'error'); return; }
+    closeEditModal();
+    showToast('Team updated successfully.', 'success');
+    setTimeout(function(){ location.reload(); }, 600);
+  });
+}
+
+function deleteTeam(id, name){
+  if (!confirm('Delete team "' + name + '" permanently?\n\nThis removes the authorized team, its login, and its progress. Use CLEAR LOGIN to only end the session. Press OK to delete team or CANCEL to abort.')){
+    return;
+  }
+  post("{{ url_for('admin_team_delete', team_db_id=0) }}".replace('/0','/' + id), {}, function(err, res){
+    if (err){ showToast(err.message || 'Failed to delete team.', 'error'); return; }
+    showToast('Team "' + name + '" deleted.', 'success');
+    setTimeout(function(){ location.reload(); }, 700);
+  });
+}
+
+function clearLogin(id, name){
+  if (!confirm('Clear active login for "' + name + '"?\n\nThe participant will be logged out. The team record and all progress are preserved.')) return;
+  post("{{ url_for('admin_login_clear') }}", {team_db_id: id}, function(err, res){
+    if (err){ showToast(err.message || 'Failed to clear login.', 'error'); return; }
+    showToast('Participant session cleared successfully.', 'success');
+    setTimeout(function(){ location.reload(); }, 500);
+  });
+}
+
+function onRowSelect(){
+  var checks = document.querySelectorAll('.login-check:checked');
+  var btn = document.getElementById('clear-selected-btn');
+  btn.disabled = checks.length === 0;
+  btn.textContent = checks.length ? 'CLEAR SELECTED (' + checks.length + ')' : 'CLEAR SELECTED';
+  var all = document.querySelectorAll('.login-check');
+  var allChecked = all.length === checks.length && all.length > 0;
+  document.getElementById('select-all').checked = allChecked;
+  document.getElementById('select-all-btn').textContent = allChecked ? 'SELECT NONE' : 'SELECT ALL';
+}
+function selectAllFromCheckbox(checked){
+  document.querySelectorAll('.login-check').forEach(function(c){ c.checked = checked; });
+  onRowSelect();
+}
+function toggleSelectAll(){
+  var checks = document.querySelectorAll('.login-check');
+  var anyUnchecked = Array.prototype.some.call(checks, function(c){ return !c.checked; });
+  checks.forEach(function(c){ c.checked = anyUnchecked; });
+  onRowSelect();
+}
+function clearSelectedLogins(){
+  var checks = document.querySelectorAll('.login-check:checked');
+  var ids = Array.prototype.map.call(checks, function(c){ return c.value; });
+  if (!ids.length){ showToast('Select at least one team.', 'warning'); return; }
+  if (!confirm('Clear login sessions for ' + ids.length + ' selected teams?\n\nSelected participants will be logged out. Team records and progress are preserved.')) return;
+  post("{{ url_for('admin_login_clear_selected') }}", {team_db_ids: ids}, function(err, res){
+    if (err){ showToast(err.message || 'Failed.', 'error'); return; }
+    showToast(ids.length + ' participant session(s) cleared successfully.', 'success');
+    setTimeout(function(){ location.reload(); }, 500);
+  });
+}
+function clearAllLogins(){
+  if (!confirm('Clear all active participant login sessions?\n\nAll currently active participants will be logged out.\nAdmin session, team records, scores, and progress are preserved.')) return;
+  post("{{ url_for('admin_login_clear_all') }}", {}, function(err, res){
+    if (err){ showToast(err.message || 'Failed.', 'error'); return; }
+    showToast('All participant login sessions cleared successfully.', 'success');
+    setTimeout(function(){ location.reload(); }, 500);
+  });
+}
+function filterTeams(q){
+  var rows = document.querySelectorAll('#teams-table tbody tr');
+  rows.forEach(function(row){
+    row.style.display = row.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+if (location.hash === '#add-team'){
+  showTeamModal();
+  history.replaceState(null, '', location.pathname);
+}
+</script>
+{% endblock %}

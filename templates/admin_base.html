@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admin Control - Cyber Detective{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-panel.css') }}?v=4">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}?v=4">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%238B5CF6'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold' font-family='monospace'>CD</text></svg>">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="ap-layout ap-colors">
+    <!-- Sidebar -->
+    <aside class="ap-sidebar">
+      <div class="ap-sidebar-head">
+        <a class="ap-brand" href="{{ url_for('admin_dashboard') }}">
+          <div class="ap-brand-mark">CD</div>
+          <div class="ap-brand-text">CYBER DETECTIVE
+            <small>ACCESS CONTROL CENTER</small>
+          </div>
+        </a>
+      </div>
+
+      <nav class="ap-sidebar-nav" id="apSidebar">
+        {% macro item(endpoint, label, icon='rect') %}
+        <a href="{{ url_for(endpoint) }}" class="ap-nav-item {% if request.endpoint == endpoint %}active{% endif %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            {% if icon == 'grid' %}<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            {% elif icon == 'users' %}<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            {% elif icon == 'puzzle' %}<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            {% elif icon == 'case' %}<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            {% elif icon == 'check' %}<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+            {% elif icon == 'eye' %}<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            {% elif icon == 'activity' %}<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            {% elif icon == 'cog' %}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            {% elif icon == 'trophy' %}<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+            {% else %}<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            {% endif %}
+          </svg>
+          {{ label }}
+        </a>
+        {% endmacro %}
+
+        {% macro group(key, label, icon, active_endpoints, children) %}
+        <div class="ap-nav-group {{ 'open' if request.endpoint in active_endpoints }}" id="grp-{{ key }}">
+          <button type="button" class="ap-nav-group-toggle" data-group="{{ key }}">
+            <span class="ap-row">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                {% if icon == 'users' %}<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                {% elif icon == 'shield' %}<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                {% elif icon == 'gavel' %}<polygon points="14 4 20 10 18 12 12 6"/><line x1="2" y1="21" x2="22" y2="21"/><line x1="12" y1="6" x2="6" y2="12"/><line x1="14" y1="4" x2="20" y2="10"/>
+                {% else %}<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                {% endif %}
+              </svg>
+              {{ label }}
+            </span>
+            <span class="ap-chev">&#9656;</span>
+          </button>
+          <div class="ap-nav-group-body">
+            {% for endpoint, label in children %}
+            <a href="{{ url_for(endpoint) }}" class="ap-nav-sub {% if request.endpoint == endpoint %}active{% endif %}">{{ label }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endmacro %}
+
+        <div class="ap-nav-section">
+          <div class="ap-nav-section-title">GENERAL</div>
+          {{ item('admin_dashboard', 'Dashboard', 'grid') }}
+          {{ group('teams', 'Team Members', 'users',
+                   ('admin_round1_teams', 'admin_round2_teams', 'admin_team_logins'),
+                   (('admin_round1_teams', 'Round 1 Teams'), ('admin_round2_teams', 'Round 2 Teams'))) }}
+        </div>
+
+        <div class="ap-nav-section">
+          <div class="ap-nav-section-title">ROUND 1</div>
+          {{ group('r1', 'MIXED FUNDAMENTALS', 'shield',
+                   ('admin_round1_overview', 'admin_r1_challenges', 'admin_r1_questions',
+                    'admin_r1_validation', 'admin_r1_scoring', 'admin_r1_settings'),
+                   (('admin_round1_overview', 'Overview'),
+                    ('admin_r1_challenges', 'Cases & Challenges'),
+                    ('admin_r1_questions', 'Question Bank'),
+                    ('admin_r1_validation', 'Answer Validation'),
+                    ('admin_r1_scoring', 'Scoring'),
+                    ('admin_r1_settings', 'Settings'))) }}
+        </div>
+
+        <div class="ap-nav-section">
+          <div class="ap-nav-section-title">ROUND 2</div>
+          {{ group('r2', 'DIGITAL FORENSICS', 'case',
+                   ('admin_round2_overview', 'admin_r2_cases', 'admin_r2_case_detail',
+                    'admin_r2_evidence', 'admin_r2_tasks', 'admin_r2_questions',
+                    'admin_r2_validation', 'admin_r2_scoring', 'admin_r2_settings',
+                    'admin_r2_case_preview'),
+                   (('admin_round2_overview', 'Overview'),
+                    ('admin_r2_cases', 'Cases'),
+                    ('admin_r2_evidence', 'Evidence Library'),
+                    ('admin_r2_tasks', 'Investigation Tasks'),
+                    ('admin_r2_questions', 'Report Questions'),
+                    ('admin_r2_validation', 'Answer Validation'),
+                    ('admin_r2_scoring', 'Scoring'),
+                    ('admin_r2_settings', 'Settings'))) }}
+        </div>
+
+        <div class="ap-nav-section">
+          <div class="ap-nav-section-title">OPERATIONS</div>
+          {{ item('admin_monitoring', 'Live Monitoring', 'activity') }}
+          {{ item('admin_submissions', 'Submissions', 'check') }}
+          {{ item('admin_review', 'Report Review', 'eye') }}
+          {{ item('admin_leaderboard', 'Leaderboard', 'trophy') }}
+          {{ item('admin_audit_log', 'Audit Log', 'activity') }}
+          {{ item('admin_system', 'System Settings', 'cog') }}
+        </div>
+      </nav>
+
+      <div class="ap-sidebar-foot">
+        <a href="{{ url_for('landing') }}" class="ap-btn ghost sm w-100" style="justify-content:center;width:100%;">BACK TO PLATFORM</a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="ap-main">
+            <header class="ap-topbar">
+        <div class="ap-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div class="ap-row" style="display: flex; align-items: center; gap: 12px;">
+            <button class="ap-btn ghost sm ap-mobile-toggle" id="apMobileToggle" style="display: none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span class="ap-topbar-title" id="apTopTitle">Overview</span>
+          </div>
+          <span class="ap-badge success" id="apRoundStatus">CONTROL ACTIVE</span>
+          <span class="hx-badge" style="margin-left:8px;">PRIVILEGED</span>
+        </div>
+        <div class="ap-row">
+          <span class="ap-mono ap-muted" style="font-size:11px;">CYBER DETECTIVE 2026</span>
+          <a href="{{ url_for('r1.r1_admin_logout') }}" class="ap-btn ghost sm">LOGOUT</a>
+        </div>
+      </header>
+
+      <div class="ap-content">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  <div class="ap-modal" id="apModal" onclick="if(event.target===this)ApCloseModal()">
+    <div class="ap-modal-card">{% block modal %}{% endblock %}</div>
+  </div>
+
+  <div class="ap-toast" id="apToast"></div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>
+    (function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+
+      // Collapsible nav groups
+      document.querySelectorAll('.ap-nav-group-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var grp = this.parentElement;
+          grp.classList.toggle('open');
+          try {
+            localStorage.setItem('apgrp-' + grp.id,
+              grp.classList.contains('open') ? '1' : '0');
+          } catch (e) {}
+        });
+      });
+      // Restore open state
+      document.querySelectorAll('.ap-nav-group').forEach(function (grp) {
+        try {
+          if (localStorage.getItem('apgrp-' + grp.id) === '0' &&
+              !grp.classList.contains('open')) return;
+        } catch (e) {}
+      });
+      // Topbar title from the active nav item
+      var topTitle = document.getElementById('apTopTitle');
+      if (topTitle) {
+        var act = document.querySelector('.ap-nav-item.active, .ap-nav-sub.active');
+        if (act) {
+          var t = act.textContent.trim().split('\n')[0].trim();
+          if (t) topTitle.textContent = t;
+        }
+      }
+      // Escape closes the modal
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') ApCloseModal();
+      });
+    })();
+
+    function apToast(msg, isError) {
+      var t = document.getElementById('apToast');
+      t.textContent = msg;
+      t.className = 'ap-toast show' + (isError ? ' error' : '');
+      clearTimeout(t._h);
+      t._h = setTimeout(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ t.classList.remove('show'); }, 3600);
+    }
+
+    function ApCloseModal() {
+      document.getElementById('apModal').classList.remove('open');
+    }
+
+    function ApShowPanel(panelId) {
+      document.querySelectorAll('#apModal .ap-modal-panel').forEach(function (el) {
+        el.style.display = (el.id === panelId) ? 'block' : 'none';
+      });
+      document.getElementById('apModal').classList.add('open');
+    }
+
+    function ApOpenForm(url, payload) {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json().catch(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ return {}; }); })
+        .then(function (d) {
+          if (d && d.ok) {
+            apToast('Saved');
+            setTimeout(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ window.location.reload(); }, 400);
+          } else {
+            apToast((d && d.error) || 'Request failed.', true);
+          }
+        }).catch(function () {
+      document.getElementById('apMobileToggle').addEventListener('click', function() {
+        document.getElementById('apSidebar').classList.toggle('open');
+      });
+ apToast('Request failed.', true); });
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

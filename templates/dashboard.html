@@ -1,46 +1,109 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - {{ case.title }}{% endblock %}
+{% block title %}Dashboard — {{ case.code }} {{ case.title }}{% endblock %}
 {% block content %}
-<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+<div class="fs-shell">
+  <!-- Case Hero -->
+  <header class="fs-masthead" style="padding:22px 24px;">
+    <div class="file-icon" style="width:40px;height:40px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </div>
     <div>
-        <span class="tag">{{ case.code }}</span>
-        <h1 style="margin-top:10px;font-size:24px;">{{ case.title }}</h1>
-        <p class="muted">{{ case.company }}</p>
+      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
+        <span class="fs-chip violet">{{ case.code }}</span>
+        <span class="fs-chip {% if stage == 'complete' %}ok{% else %}warn{% endif %}">{{ stage|upper }}</span>
+        <span class="fs-chip dim">TEAM {{ team.team_id|upper }}</span>
+        <span class="hx-badge">SECURE</span>
+      </div>
+      <div class="mh-title" style="font-size:1.45rem;margin-top:4px;">{{ case.title }}</div>
+      <div class="mh-sub">{{ team.name }} · Captain: {{ team.captain }}</div>
     </div>
-    <div style="text-align:right;">
-        <p class="muted" style="font-size:13px;">Team: <b style="color:var(--text)">{{ team.name }}</b></p>
-        <p class="muted" style="font-size:13px;">Captain: <b style="color:var(--text)">{{ team.captain }}</b></p>
+    <div class="mh-right">
+      <div class="fs-mono" style="text-align:right;">
+        <div class="fs-overline">VERIFIED FINDINGS</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent);">{{ verified }}<span style="font-size:.85rem;color:var(--text-muted);">/{{ case.stations|length }}</span></div>
+      </div>
     </div>
-</div>
+  </header>
 
-<div class="grid grid-2">
-    <a href="{{ url_for('case_study') }}" style="color:inherit;">
-        <div class="card" style="min-height:150px;">
-            <div style="font-size:30px;">📁</div>
-            <h2 style="margin-top:10px;">Case File</h2>
-            <p class="muted" style="font-size:14px;">Read the narrated story, incident details, and investigation objective.</p>
+  <!-- Metrics -->
+  <div class="grid grid-2" style="margin-bottom:14px;">
+    <div class="fs-card" style="padding:18px 20px;">
+      <div class="fs-overline" style="margin-bottom:8px;"><strong>ROUND 02</strong> — EVIDENCE</div>
+      <div style="font-size:1.4rem;font-weight:800;color:var(--success);">{{ verified }}<span style="font-size:.8rem;color:var(--text-muted);"> / {{ case.stations|length }} STATIONS</span></div>
+      <div class="progress mt-md"><div class="progress-fill success" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%;"></div></div>
+    </div>
+    <div class="fs-card" style="padding:18px 20px;">
+      <div class="fs-overline" style="margin-bottom:8px;"><strong>ROUND 02 REPORT</strong> — FINAL</div>
+      <div style="font-size:1.4rem;font-weight:800;color:{{ 'var(--success)' if report_done else 'var(--text-muted)' }};">{{ 'SUBMITTED' if report_done else 'PENDING' }}</div>
+      <div class="mt-md fs-chip {{ 'ok' if report_done else 'dim' }}">{{ 'COMPLETE' if report_done else 'NOT SUBMITTED' }}</div>
+    </div>
+  </div>
+
+  <!-- Workflow -->
+  <div class="fs-card" style="padding:18px 20px;margin-bottom:14px;">
+    <div class="fs-overline" style="margin-bottom:8px;">INVESTIGATION WORKFLOW</div>
+    <div class="wf">
+      <div class="wf-step done"><div class="wf-dot">1</div><div class="wf-label">Case Opened</div></div>
+      <div class="wf-step {{ 'done' if stage in ('evidence','report','complete') else 'active' }}"><div class="wf-dot">2</div><div class="wf-label">Brief Read</div></div>
+      <div class="wf-step {{ 'done' if stage in ('report','complete') else 'active' if stage == 'evidence' }}"><div class="wf-dot">3</div><div class="wf-label">Evidence</div></div>
+      <div class="wf-step {{ 'done' if stage == 'complete' else 'active' if stage == 'report' }}"><div class="wf-dot">4</div><div class="wf-label">Verdict</div></div>
+      <div class="wf-step {{ 'active' if stage == 'complete' }}"><div class="wf-dot">5</div><div class="wf-label">Closed</div></div>
+    </div>
+  </div>
+
+  <!-- Active Case -->
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;border-color:var(--accent-border);">
+    <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:16px;">
+      <div>
+        <div class="flex items-center gap-sm" style="margin-bottom:6px;">
+          <span class="fs-overline"><strong>ACTIVE CASE</strong></span>
         </div>
+        <p style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;max-width:640px;">{{ case.incident }}</p>
+      </div>
+      <a href="{{ url_for('evidence', station_id=case.stations[0].id) }}" class="btn btn-primary btn-lg">
+        ENTER WORKSTATION
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Evidence stations list -->
+  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
+    <div class="flex items-center justify-between" style="margin-bottom:14px;">
+      <div class="fs-overline"><strong>EVIDENCE VAULT</strong></div>
+      <div class="fs-mono" style="font-size:.72rem;color:var(--text-muted);">SEQUENTIAL ACCESS</div>
+    </div>
+    <div class="grid" style="gap:10px;">
+      {% for item in vault %}
+      <a href="{{ url_for('evidence', station_id=item.station.id) }}" class="vault-item vault-{{ item.state }}" style="padding:14px 16px;{{ 'text-decoration:none;color:inherit;' if item.state == 'locked' else '' }}">
+        <span class="vault-idx" style="width:34px;height:34px;font-size:.72rem;">{{ item.station.id }}</span>
+        <span class="vault-body">
+          <span class="vault-name">{{ item.station.name }}</span>
+          <span class="vault-meta">{{ item.station.domain }}</span>
+        </span>
+        <span class="vault-state" style="min-width:80px;text-align:center;">{{ item.state }}</span>
+        {% if item.state != 'locked' %}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="grid grid-3" style="margin-bottom:40px;">
+    <a href="{{ url_for('evidence_board') }}" class="fs-card" style="padding:18px 20px;text-decoration:none;color:inherit;transition:border-color var(--duration-fast);display:block;">
+      <div class="fs-overline" style="margin-bottom:8px;"><strong>CASE OVERVIEW</strong></div>
+      <p style="font-size:.8rem;color:var(--text-muted);line-height:1.55;">View the evidence chain and verified findings matrix.</p>
     </a>
-    <div class="card" style="min-height:150px;">
-        <div style="font-size:30px;">🗂️</div>
-        <h2 style="margin-top:10px;">Evidence Room</h2>
-        <p class="muted" style="font-size:14px;">Analyze the 5 evidence stations below to uncover verified findings.</p>
-    </div>
-</div>
-
-<h2 style="margin:22px 0 12px;">Evidence Room — 5 Stations</h2>
-{% for s in case.stations %}
-<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-    <div>
-        <span class="tag">{{ s.id }} · {{ s.domain }}</span>
-        <h3 style="margin-top:8px;">{{ s.name }}</h3>
-        <p class="muted" style="font-size:14px;">{{ s.desc }}</p>
-    </div>
-    <a href="{{ url_for('evidence', station_id=s.id) }}" class="btn">Investigate →</a>
-</div>
-{% endfor %}
-
-<div style="text-align:center;margin-top:20px;">
-    <a href="{{ url_for('report') }}" class="btn green" style="padding:14px 26px;font-size:15px;">Final Incident Report →</a>
+    <a href="{{ url_for('report') }}" class="fs-card" style="padding:18px 20px;text-decoration:none;color:inherit;transition:border-color var(--duration-fast);display:block;">
+      <div class="fs-overline" style="margin-bottom:8px;"><strong>FINAL REPORT</strong></div>
+      <p style="font-size:.8rem;color:var(--text-muted);line-height:1.55;">Submit your incident report and identify the persons involved.</p>
+    </a>
+    <a href="{{ url_for('scoreboard') }}" class="fs-card" style="padding:18px 20px;text-decoration:none;color:inherit;transition:border-color var(--duration-fast);display:block;">
+      <div class="fs-overline" style="margin-bottom:8px;"><strong>ROUND 02 SCOREBOARD</strong></div>
+      <p style="font-size:.8rem;color:var(--text-muted);line-height:1.55;">See how your team ranks in the digital forensics investigation.</p>
+    </a>
+  </div>
 </div>
 {% endblock %}

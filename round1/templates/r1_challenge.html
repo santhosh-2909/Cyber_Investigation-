@@ -1,0 +1,167 @@
+{% extends "r1_base.html" %}
+{% block title %}Challenge - {{ assignment.title }}{% endblock %}
+{% block content %}
+{% set meta = assignment.lab_meta %}
+
+<div style="margin-bottom:20px;">
+  <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-nav-link hud-btn-ghost" style="text-decoration:none;display:inline-flex;">&larr; BACK TO DASHBOARD</a>
+</div>
+
+<div class="flex items-center justify-between" style="flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+  <div>
+    <div class="flex items-center gap-sm mb-sm">
+      <span class="hud-badge hud-badge-purple">{{ assignment.code }}</span>
+      <span class="font-mono text-muted" style="font-size:0.7rem;">VARIANT {{ assignment.variant_code }}</span>
+      <span class="hud-badge {{ 'hud-badge-amber' if assignment.difficulty == 'Medium-Hard' else ('hud-badge-purple' if assignment.difficulty == 'Medium' else 'hud-badge-muted') }}">{{ assignment.difficulty }}</span>
+      {% if already_solved %}<span class="hud-badge hud-badge-green">&#10003; COMPLETED</span>{% endif %}
+      {% if lab_completed and not already_solved %}<span class="hud-badge hud-badge-purple">FLAG READY</span>{% endif %}
+    </div>
+    <div class="hud-kicker" style="color:var(--hud-purple-lt);">MISSION {{ assignment.challenge_code }}</div>
+    <h2 class="hud-h1" style="margin:4px 0 2px;">{{ assignment.title }}</h2>
+    <p class="hud-sub" style="margin:6px 0 0;">{{ assignment.domain }}</p>
+  </div>
+  <div class="hud-panel" style="padding:16px 20px;text-align:right;">
+    <div class="hud-stat-label" style="margin:0;">Value</div>
+    <div class="hud-bigstat" style="font-size:2rem;">{{ assignment.points }}<span class="u"> pts</span></div>
+    <div class="hud-stat-label">On Flag</div>
+  </div>
+</div>
+
+<!-- Story / briefing -->
+<div class="hud-panel hud-panel-cn" style="padding:26px;margin-bottom:20px;">
+  <div class="hud-panel-title" style="margin-bottom:12px;">Briefing</div>
+  <p style="font-size:1.05rem;line-height:1.7;color:var(--hud-muted);">{{ assignment.story }}</p>
+  <div style="margin-top:16px;padding:16px 18px;background:rgba(8,13,22,0.7);border-radius:10px;border-left:3px solid var(--hud-purple-lt);">
+    <div class="hud-kicker" style="color:var(--hud-purple-lt);margin-bottom:6px;">Objective</div>
+    <p style="margin:0;color:var(--hud-text);font-size:0.95rem;line-height:1.6;">{{ assignment.objective }}</p>
+  </div>
+</div>
+
+<!-- Lab section -->
+<div class="hud-panel" style="padding:22px;margin-bottom:20px;">
+  <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="hud-kicker" style="color:var(--hud-purple-lt);margin-bottom:6px;">{{ meta.label if meta else ('INTERACTIVE LAB') }}</div>
+      <p class="hud-sub" style="margin:0;font-size:0.9rem;">
+        {{ 'Your lab is complete. Submit the revealed flag below to score points.'
+           if lab_completed else
+           ('This question has been locked and can no longer be attempted.'
+            if lab_locked else
+            'Open the interactive lab, perform the task, and the server will reveal your flag on success.') }}
+      </p>
+    </div>
+    {% if lab_completed %}
+    <span class="hud-badge hud-badge-green">&#10003; LAB COMPLETED</span>
+    {% elif lab_locked %}
+    <span class="hud-badge hud-badge-purple">LOCKED</span>
+    {% else %}
+    <a href="{{ url_for('r1.r1_lab', assignment_id=assignment.id) }}" class="hud-btn">
+      {{ 'RESUME LAB' if assignment.lab_status == 'IN_PROGRESS' else 'OPEN LAB' }} &rarr;
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if already_solved %}
+  <div class="hud-panel" style="padding:20px;margin-bottom:20px;border-color:rgba(52,211,153,0.4);">
+    <div class="hud-kicker" style="color:var(--hud-green);">&#10003; FLAG ACCEPTED</div>
+    <p style="margin:8px 0 0;color:var(--hud-muted);">
+      This challenge is complete ({{ attempts }} attempt{{ '' if attempts == 1 else 's' }}). {{ assignment.points }} points awarded.
+      No additional points are given for resubmission.
+    </p>
+    {% if assignment.explanation %}
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--hud-line-soft);">
+      <div class="hud-kicker" style="margin-bottom:6px;">Why This Was The Answer</div>
+      <p style="font-size:0.9rem;color:var(--hud-muted);line-height:1.7;margin:0;">{{ assignment.explanation }}</p>
+    </div>
+    {% endif %}
+  </div>
+  <a href="{{ url_for('r1.r1_dashboard') }}" class="hud-btn hud-btn-green">BACK TO DASHBOARD</a>
+
+{% elif lab_completed %}
+  <!-- Lab done: submit the flag -->
+  <div class="hud-panel" style="padding:24px;">
+    <div class="hud-panel-title" style="margin-bottom:10px;">Submit The Flag</div>
+    <p class="hud-sub" style="font-size:0.88rem;margin:0 0 16px;">
+      The flag was revealed when you completed the lab. You can copy it again from the lab page.
+    </p>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <input id="flag-input" type="text" class="flag-input" style="flex:1;min-width:260px;background:rgba(8,13,22,0.8);border:1px solid var(--hud-line);border-radius:8px;padding:14px;"
+             placeholder="FLAG{...}" autocomplete="off" spellcheck="false" autofocus>
+      <button id="flag-submit" type="button" class="hud-btn hud-btn-green btn-lg">SUBMIT FLAG</button>
+    </div>
+    <div id="flag-result" style="margin-top:14px;"></div>
+  </div>
+
+  <script>
+    (function() {
+      var fs = document.getElementById('flag-submit');
+      var fi = document.getElementById('flag-input');
+      var fr = document.getElementById('flag-result');
+      fs.addEventListener('click', function(){
+        var flag = fi.value.trim();
+        if (!flag) { fr.innerHTML = '<span class="text-warning">Enter the flag.</span>'; return; }
+        fr.innerHTML = '<span class="text-muted font-mono">Validating flag...</span>';
+        var fd = new FormData(); fd.append('flag', flag);
+        fetch('{{ url_for("r1.r1_submit", assignment_id=assignment.id) }}', { method:'POST', body: fd })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (!d.ok) { fr.innerHTML = '<span class="text-danger">' + (d.error || 'Error') + '</span>'; return; }
+            if (d.correct) {
+              fr.innerHTML = '<div class="card" style="background:var(--success-bg);border-color:var(--success);padding:14px 16px;">' +
+                '<div class="font-overline text-success">&#10003; FLAG ACCEPTED</div>' +
+                (d.already ? '<p style="margin:6px 0 0;color:var(--text-secondary);font-size:0.85rem;">Already solved previously.</p>'
+                           : '<p style="margin:6px 0 0;color:var(--text-secondary);font-size:0.85rem;">+'+ d.points +' points. Nicely done.</p>') +
+                '</div>';
+              // Credit the score with a brief +points popup, then auto-hide.
+              if (!d.already && d.points) { showPointsToast(d.points); }
+              // Automatically transition to the next unlocked challenge.
+              setTimeout(function(){ window.location.href = '{{ url_for("r1.r1_dashboard") }}'; }, 1500);
+            } else {
+              fr.innerHTML = '<span class="text-danger">Invalid flag. Try again.</span>';
+            }
+          })
+          .catch(function(){ fr.innerHTML = '<span class="text-danger">Request error.</span>'; });
+      });
+      fi.addEventListener('keydown', function(e){ if (e.key === 'Enter') fs.click(); });
+    })();
+  </script>
+
+  <div id="points-toast" aria-live="polite" style="position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:3000;opacity:0;pointer-events:none;transition:opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);"></div>
+  <script>
+    function showPointsToast(points) {
+      var el = document.getElementById('points-toast');
+      if (!el) return;
+      var n = parseInt(points, 10) || 0;
+      el.innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;background:var(--bg-elevated);border:1px solid var(--success);box-shadow:0 8px 32px rgba(0,0,0,0.5);border-radius:var(--radius-lg);padding:14px 22px;">' +
+        '<span style="width:34px;height:34px;border-radius:50%;background:var(--success-bg);display:inline-flex;align-items:center;justify-content:center;font-size:1rem;">&#127942;</span>' +
+        '<div>' +
+        '<div class="font-overline text-success">POINTS CREDITED</div>' +
+        '<div class="font-mono" style="font-size:1.4rem;font-weight:800;color:var(--text-primary);line-height:1;">+'+ n +'</div>' +
+        '</div></div>';
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-50%) translateY(-20px)';
+      }, 2000);
+    }
+  </script>
+
+{% else %}
+  <!-- Lab not yet completed: no flag input -->
+  <div class="hud-panel" style="padding:20px;border-color:var(--hud-line-soft);opacity:0.85;">
+    <div class="flex items-center gap-md">
+      <span class="status-dot inactive"></span>
+      <div>
+        <div class="hud-kicker" style="color:var(--hud-dim);">Flag Locked</div>
+        <p class="hud-sub" style="margin:6px 0 0;font-size:0.875rem;">
+          The flag is hidden and will be revealed only when you complete the interactive lab.
+          Press <span style="color:var(--hud-purple-lt);">OPEN LAB</span> above to begin.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

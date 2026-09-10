@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Round 1 Leaderboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <a href="{{ url_for('r1.r1_landing') }}" class="topnav-brand">
+        <div class="topnav-brand-icon">R1</div>
+        <div class="topnav-brand-text">CYBER<span>PUZZLE</span></div>
+      </a>
+      <div class="topnav-links">
+        <a href="{{ url_for('r1.r1_landing') }}" class="topnav-link">Home</a>
+        <a href="{{ url_for('r1.r1_rules') }}" class="topnav-link">Rules</a>
+        <a href="{{ url_for('r1.r1_leaderboard') }}" class="topnav-link active">Leaderboard</a>
+      </div>
+      <div class="topnav-right">
+        {% if team %}
+          <div class="topnav-team">
+            <div class="topnav-team-name">{{ team.team_name }}</div>
+          </div>
+          <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-primary btn-sm">MY ROUND</a>
+        {% else %}
+          <a href="{{ url_for('r1.r1_login') }}" class="btn btn-ghost btn-sm">LOGIN</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-wide" style="padding:32px 0 80px;">
+    <div class="section-header" style="text-align:center;margin-bottom:28px;">
+      <div class="hero-badge"><span class="badge badge-accent badge-dot">ROUND 1</span></div>
+      <h2 style="font-size:2rem;margin-top:10px;">Live Leaderboard</h2>
+      <p class="text-secondary">Completed rounds, ranked by score then speed.</p>
+    </div>
+
+    {% if leaderboard %}
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Team</th>
+            <th>Score</th>
+            <th>Solved</th>
+            <th>Finished</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in leaderboard %}
+          <tr>
+            <td><span class="font-mono">#{{ loop.index }}</span></td>
+            <td><span style="font-weight:600;color:var(--text-primary);">{{ r.team_name }}</span></td>
+            <td><span class="font-mono text-primary">{{ r.score }}</span></td>
+            <td><span class="font-mono">{{ r.challenges_solved }}/6</span></td>
+            <td><span class="font-mono text-muted">{{ r.completed_at or '—' }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card" style="padding:40px;text-align:center;">
+      <p class="text-secondary">No completed rounds yet. Scores will appear here once teams finish.</p>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>
