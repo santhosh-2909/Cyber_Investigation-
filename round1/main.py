@@ -282,6 +282,9 @@ def _get_session_row_from_team(team):
     # Mirror any corrected status back into the cookie + DB.
     try:
         rstate.mirror_session(sess)
+        # Make sure parent session/assignment rows exist so FK-backed writes
+        # (submissions / lab_events / hint_usage) never fail on cold instances.
+        rstate.ensure_db_rows(sess)
     except Exception:
         pass
     return sess

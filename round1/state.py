@@ -105,12 +105,24 @@ def mirror_session(session_row):
 # ---------------------------------------------------------------------------
 
 
+def _norm_ids(d):
+    """Make an assignment dict usable by every template / route, which
+    variously expect `id` or `assignment_id` (and category id spellings)."""
+    if d is None:
+        return None
+    d["assignment_id"] = d.get("assignment_id") or d.get("id")
+    d["id"] = d.get("id") or d.get("assignment_id")
+    d["category_id"] = d.get("category_id") or d.get("challenge_category_id")
+    d["challenge_category_id"] = d.get("challenge_category_id") or d.get("category_id")
+    return d
+
+
 def _db_assignments(session_id, order_by_display=True):
     conn = db.get_connection()
     try:
         order = "ORDER BY a.display_order" if order_by_display else ""
         rows = conn.execute(
-            "SELECT a.id AS assignment_id, a.display_order, a.status, "
+            "SELECT a.id AS assignment_id, a.session_id, a.display_order, a.status, "
             "a.started_at, a.completed_at, a.points_awarded, "
             "a.lab_status, a.lab_started_at, a.lab_completed_at, "
             "a.flag_revealed, a.lab_attempts, a.lab_submitted, "
@@ -135,7 +147,7 @@ def _db_assignments(session_id, order_by_display=True):
                 d["hints"] = json.loads(d["hints"]) if d.get("hints") else []
             except Exception:
                 d["hints"] = []
-            out.append(d)
+            out.append(_norm_ids(d))
         return out
     finally:
         conn.close()
@@ -159,7 +171,7 @@ def _build_assignment_from_cookie(compact, db_data):
         merged.setdefault("assignment_id", compact["id"])
     if compact.get("challenge_category_id"):
         merged.setdefault("category_id", compact["challenge_category_id"])
-    return merged
+    return _norm_ids(merged)
 
 
 def _static_assignment(category_id, variant_id):
@@ -229,7 +241,7 @@ def _db_assignment(session_id, assignment_id, team_id):
     conn = db.get_connection()
     try:
         row = conn.execute(
-            "SELECT a.id AS assignment_id, a.display_order, a.status, "
+            "SELECT a.id AS assignment_id, a.session_id, a.display_order, a.status, "
             "a.started_at, a.completed_at, a.points_awarded, "
             "a.lab_status, a.lab_started_at, a.lab_completed_at, "
             "a.flag_revealed, a.lab_attempts, a.lab_submitted, "
@@ -254,7 +266,7 @@ def _db_assignment(session_id, assignment_id, team_id):
             d["hints"] = json.loads(d["hints"]) if d.get("hints") else []
         except Exception:
             d["hints"] = []
-        return d
+        return _norm_ids(d)
     finally:
         conn.close()
 
@@ -383,6 +395,78 @@ def remember_assignments(session_row, assignment_rows):
     state["session"] = _compact_session(session_row)
     state["assignments"] = [_compact_assignment(a) for a in assignment_rows]
     _save(state)
+
+
+def ensure_db_rows(session_row):
+    """Re-hydrate the ephemeral round_sessions + assignment rows on a cold
+    serverless instance from the cookie mirror.
+
+    sub / lab / hint writes carry FOREIGN KEY constraints against the session
+    and assignment rows.  Those rows live in the packaged DB only on the
+    instance that created them, so once a cold instance receives the cookie
+    without its parent rows we recreate them (INSERT OR IGNORE, ids preserved)
+    to keep every write path (submissions, lab_events, hint_usage, UPDATEs)
+    working.
+    """
+    if not session_row:
+        return
+    state = _load()
+    if state.get("session", {}).get("id") != session_row.get("id"):
+        return
+    sess = dict(session_row)
+    conn = db.get_connection()
+    try:
+        conn.execute(
+            "INSERT INTO round_sessions (id, team_id, round_name, "
+            "started_at, ends_at, completed_at, status, score, "
+            "challenges_solved) VALUES (?,?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(id) DO UPDATE SET "
+            "team_id=excluded.team_id, round_name=excluded.round_name, "
+            "started_at=excluded.started_at, ends_at=excluded.ends_at, "
+            "completed_at=excluded.completed_at, status=excluded.status, "
+            "score=excluded.score, challenges_solved=excluded.challenges_solved",
+            (sess.get("id"), sess.get("team_id"),
+             sess.get("round_name") or
+             "Round 1 - Cyber Puzzle: Mixed Fundamentals",
+             sess.get("started_at") or db.now_ms(),
+             sess.get("ends_at") or (db.now_ms() + 30 * 60 * 1000),
+             sess.get("completed_at"), sess.get("status") or "ACTIVE",
+             sess.get("score") or 0, sess.get("challenges_solved") or 0))
+        for a in state.get("assignments", []):
+            conn.execute(
+                "INSERT INTO team_challenge_assignments "
+                "(id, session_id, challenge_category_id, variant_id, "
+                "display_order, status, started_at, completed_at, "
+                "points_awarded, lab_status, lab_started_at, lab_completed_at, "
+                "flag_revealed, lab_attempts, lab_submitted) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(id) DO UPDATE SET "
+                "session_id=excluded.session_id, "
+                "challenge_category_id=excluded.challenge_category_id, "
+                "variant_id=excluded.variant_id, "
+                "display_order=excluded.display_order, status=excluded.status, "
+                "started_at=excluded.started_at, "
+                "completed_at=excluded.completed_at, "
+                "points_awarded=excluded.points_awarded, "
+                "lab_status=excluded.lab_status, "
+                "lab_started_at=excluded.lab_started_at, "
+                "lab_completed_at=excluded.lab_completed_at, "
+                "flag_revealed=excluded.flag_revealed, "
+                "lab_attempts=excluded.lab_attempts, "
+                "lab_submitted=excluded.lab_submitted",
+                (a.get("id"), a.get("session_id"),
+                 a.get("challenge_category_id"), a.get("variant_id"),
+                 a.get("display_order") or 0, a.get("status") or "IN_PROGRESS",
+                 a.get("started_at"), a.get("completed_at"),
+                 a.get("points_awarded") or 0,
+                 a.get("lab_status") or "NOT_STARTED", a.get("lab_started_at"),
+                 a.get("lab_completed_at"), a.get("flag_revealed") or 0,
+                 a.get("lab_attempts") or 0, a.get("lab_submitted") or 0))
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
 
 
 def update_session_status(session_id, status, completed_at=None):

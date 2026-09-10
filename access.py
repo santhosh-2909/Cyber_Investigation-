@@ -150,7 +150,7 @@ def get_team_by_credentials(team_name, access_id, round_name=None):
     if not team_name or not access_id:
         return None
     credential_column = {
-        "round1": "team_id",
+        "round1": "round1_access_id",
         "round2": "round2_access_id",
     }.get(round_name, "team_id")
     conn = db.get_connection()
