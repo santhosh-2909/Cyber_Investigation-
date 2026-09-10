@@ -198,22 +198,23 @@ def r1_logout():
 @r1.route("/r1/start", methods=["POST"])
 @login_required_team
 def r1_start(team):
+    # Resume the live session (DB-first, cookie fallback so the timer keeps
+    # counting down across serverless instances instead of restarting the
+    # 30-minute clock on every login).
+    existing = rstate.get_session(team["id"])
+    if existing is not None:
+        existing = _mark_expired(dict(existing))
+        if existing["status"] == "ACTIVE":
+            try:
+                rstate.mirror_session(existing)
+            except Exception:
+                pass
+            return redirect(url_for("r1.r1_dashboard"))
+        if existing["status"] in ("COMPLETED", "EXPIRED"):
+            return redirect(url_for("r1.r1_complete",
+                                    session_id=existing["id"]))
     conn = db.get_connection()
     try:
-        # existing active session?
-        existing = assign.get_session_by_team(team["id"])
-        if existing and existing["status"] == "ACTIVE":
-            return redirect(url_for("r1.r1_dashboard"))
-        # finished previously?
-        finished = conn.execute(
-            "SELECT * FROM round_sessions WHERE team_id=? AND status IN "
-            "('COMPLETED','EXPIRED') ORDER BY id DESC LIMIT 1",
-            (team["id"],)).fetchone()
-        if finished:
-            finished = _mark_expired(finished)
-            if finished["status"] in ("COMPLETED", "EXPIRED"):
-                return redirect(url_for("r1.r1_complete",
-                                        session_id=finished["id"]))
         # create fresh assignment
         sess = assign.create_assignment(team["id"])
         # Mirror the freshly created session + assignments into the session
