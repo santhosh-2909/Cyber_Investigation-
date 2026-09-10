@@ -15,6 +15,7 @@ import admin_ops
 import round1.db as db
 import round1.assign as assign
 import round1.lab as lab
+import round1.state as rstate
 
 # A distinct session key for the Round 1 team so it never collides with
 # Round 2's session keys.
@@ -215,6 +216,13 @@ def r1_start(team):
                                         session_id=finished["id"]))
         # create fresh assignment
         sess = assign.create_assignment(team["id"])
+        # Mirror the freshly created session + assignments into the session
+        # cookie so progress survives serverless instance switches.
+        try:
+            assignments = rstate.get_assignments(sess["id"])
+            rstate.remember_assignments(sess, assignments)
+        except Exception:
+            pass
         return redirect(url_for("r1.r1_dashboard"))
     finally:
         conn.close()
@@ -235,8 +243,8 @@ def r1_dashboard(team):
     if session_row["status"] in ("COMPLETED", "EXPIRED"):
         return redirect(url_for("r1.r1_complete", session_id=session_row["id"]))
     session_row["remaining_ms"] = session_row["ends_at"] - db.now_ms()
-    unlocked = assign.get_unlocked_assignment(session_row["id"])
-    completed = assign.get_completed_count(session_row["id"])
+    unlocked = rstate.get_unlocked(session_row["id"])
+    completed = rstate.get_completed_count(session_row["id"])
     # Real mission-log events for the participant HUD (visual only; nothing
     # answer-revealing or future-challenge-revealing is exposed).
     connm = db.get_connection()
@@ -266,10 +274,16 @@ def r1_dashboard(team):
 
 
 def _get_session_row_from_team(team):
-    sess = assign.get_session_by_team(team["id"])
+    # DB-first with serverless cookie fallback (see round1.state).
+    sess = rstate.get_session(team["id"])
     if sess is None:
         return None
-    sess = _mark_expired(sess)
+    sess = _mark_expired(dict(sess))
+    # Mirror any corrected status back into the cookie + DB.
+    try:
+        rstate.mirror_session(sess)
+    except Exception:
+        pass
     return sess
 
 
@@ -292,7 +306,7 @@ def _get_finished_session(team_id):
 
 def _get_assignment(session_id, assignment_id, team_id):
     """Return the assignment owned by a session (IDOR-safe)."""
-    return assign.get_assignment_detail(session_id, assignment_id, team_id)
+    return rstate.get_assignment(session_id, assignment_id, team_id)
 
 
 def _enforce_unlocked(session_id, assignment_id):
@@ -303,7 +317,7 @@ def _enforce_unlocked(session_id, assignment_id):
     is redirected to the currently unlocked challenge. Returns None when the
     assignment IS the currently unlocked challenge.
     """
-    unlocked_id = assign.get_current_unlocked_id(session_id)
+    unlocked_id = rstate.get_current_unlocked_id(session_id)
     if unlocked_id is None:
         # All challenges complete -> send to the completion state.
         return redirect(url_for("r1.r1_complete", session_id=session_id))
@@ -318,7 +332,7 @@ def _confirm_unlocked(session_id, assignment_id):
     Used by POST endpoints to reject attempts against future or completed
     challenges (prevents skipping / direct access to locked challenges).
     """
-    unlocked_id = assign.get_current_unlocked_id(session_id)
+    unlocked_id = rstate.get_current_unlocked_id(session_id)
     return unlocked_id is not None and unlocked_id == assignment_id
 
 
@@ -336,16 +350,8 @@ def r1_challenge(team, assignment_id):
     locked_redirect = _enforce_unlocked(session_row["id"], assignment_id)
     if locked_redirect is not None:
         return locked_redirect
-    conn = db.get_connection()
-    try:
-        attempts = conn.execute(
-            "SELECT COUNT(*) AS n FROM submissions WHERE assignment_id=?",
-            (assignment_id,)).fetchone()["n"]
-        already_solved = conn.execute(
-            "SELECT id FROM submissions WHERE assignment_id=? AND is_correct=1 "
-            "LIMIT 1", (assignment_id,)).fetchone() is not None
-    finally:
-        conn.close()
+    attempts = rstate.get_submission_count(assignment_id)
+    already_solved = a.get("status") == "COMPLETED"
     lab_locked = (a.get("lab_status", "") != "LAB_COMPLETED"
                   and int(a.get("lab_attempts") or 0) >= max_attempts())
     return render_template(
@@ -393,14 +399,9 @@ def r1_submit(team, assignment_id):
         if correct_already:
             return jsonify({"ok": True, "correct": True, "already": True})
 
-        attempt_number = conn.execute(
-            "SELECT COUNT(*) AS n FROM submissions WHERE assignment_id=?",
-            (assignment_id,)).fetchone()["n"] + 1
+        attempt_number = rstate.get_submission_count(assignment_id) + 1
 
-        real_flag = conn.execute(
-            "SELECT v.flag FROM team_challenge_assignments a "
-            "JOIN challenge_variants v ON a.variant_id = v.id WHERE a.id=?",
-            (assignment_id,)).fetchone()["flag"]
+        real_flag = rstate.get_flag(assignment_id)
         is_correct = (flag.strip() == (real_flag or "").strip())
 
         conn.execute(
@@ -421,10 +422,33 @@ def r1_submit(team, assignment_id):
                  db.now_ms()))
             update_session_score(conn, session_row["id"])
             conn.commit()
+            # Mirror progress into the cookie so it survives instance switches.
+            try:
+                rstate.update_assignment(
+                    assignment_id, status="COMPLETED",
+                    completed_at=db.now_ms(), points_awarded=a["points"],
+                    flag_attempts=attempt_number)
+                rows = [r for r in rstate.get_assignments(session_row["id"])
+                        if r.get("status") == "COMPLETED"]
+                sess = dict(rstate.get_session(session_row["team_id"])
+                            or session_row)
+                sess["score"] = sum(int(r.get("points_awarded") or 0)
+                                    for r in rows)
+                sess["challenges_solved"] = len(rows)
+                if len(rows) >= 6:
+                    sess["status"] = "COMPLETED"
+                    sess["completed_at"] = sess.get("completed_at") or db.now_ms()
+                rstate.mirror_session(sess)
+            except Exception:
+                pass
             return jsonify({"ok": True, "correct": True, "attempt": attempt_number,
                             "points": a["points"]})
 
         conn.commit()
+        try:
+            rstate.update_assignment(assignment_id, flag_attempts=attempt_number)
+        except Exception:
+            pass
         return jsonify({"ok": True, "correct": False, "attempt": attempt_number})
     finally:
         conn.close()
@@ -439,6 +463,19 @@ def _log_lab_event(conn, session_id, assignment_id, kind, detail=""):
         "INSERT INTO lab_events (assignment_id, session_id, kind, detail, "
         "occurred_at) VALUES (?,?,?,?,?)",
         (assignment_id, session_id, kind, detail, db.now_ms()))
+
+
+def _session_has_correct_submission(session_id, assignment_id):
+    """DB-only check: has this assignment ever been flagged correct?"""
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT id FROM submissions WHERE session_id=? AND assignment_id=? "
+            "AND is_correct=1 LIMIT 1",
+            (session_id, assignment_id)).fetchone()
+        return row is not None
+    finally:
+        conn.close()
 
 
 @r1.route("/r1/lab/<int:assignment_id>")
@@ -467,16 +504,18 @@ def r1_lab(team, assignment_id):
             conn.commit()
             a["lab_status"] = "IN_PROGRESS"
             a["lab_started_at"] = a["lab_started_at"] or db.now_ms()
-        already_solved = conn.execute(
-            "SELECT id FROM submissions WHERE assignment_id=? AND is_correct=1 "
-            "LIMIT 1", (assignment_id,)).fetchone() is not None
+            try:
+                rstate.update_assignment(
+                    assignment_id, lab_status="IN_PROGRESS",
+                    lab_started_at=a["lab_started_at"])
+            except Exception:
+                pass
+        already_solved = (a.get("status") == "COMPLETED" or
+                          _session_has_correct_submission(session_row["id"],
+                                                          assignment_id))
         revealed_flag = None
         if a.get("flag_revealed") and a.get("lab_status") == "LAB_COMPLETED":
-            row = conn.execute(
-                "SELECT v.flag FROM team_challenge_assignments x "
-                "JOIN challenge_variants v ON x.variant_id = v.id WHERE x.id=?",
-                (assignment_id,)).fetchone()
-            revealed_flag = row["flag"] if row else None
+            revealed_flag = rstate.get_flag(assignment_id)
     finally:
         conn.close()
     lab_attempts = int(a.get("lab_attempts") or 0)
@@ -508,11 +547,17 @@ def r1_lab_action(team, assignment_id):
 
     conn = db.get_connection()
     try:
-        # Always read authoritative state from the DB (server is the source of truth)
+        # Authoritative state: DB first, cookie mirror fallback (serverless).
         row = conn.execute(
             "SELECT * FROM team_challenge_assignments WHERE id=?",
             (assignment_id,)).fetchone()
         row = dict(row) if row else {}
+        if not row:
+            # Fall back to the cookie mirror which is always present.
+            for c in (dict(session.get("r1_state") or {}).get("assignments") or []):
+                if c.get("id") == assignment_id:
+                    row = c
+                    break
         lab_status = row.get("lab_status", "NOT_STARTED")
         lab_attempts = int(row.get("lab_attempts") or 0)
         lab_submitted = int(row.get("lab_submitted") or 0)
@@ -521,7 +566,7 @@ def r1_lab_action(team, assignment_id):
         if lab_status == "LAB_COMPLETED":
             return jsonify({
                 "ok": True, "completed": True, "status": "correct",
-                "flag": _variant_flag(conn, assignment_id)})
+                "flag": rstate.get_flag(assignment_id)})
 
         # Permanently locked (max attempts reached, still unsolved)
         if lab_attempts >= max_attempts():
@@ -531,7 +576,7 @@ def r1_lab_action(team, assignment_id):
 
         action = request.get_json(silent=True) or request.form.to_dict()
 
-        expected = assign.get_lab_answer(assignment_id)
+        expected = rstate.get_lab_answer(assignment_id)
         lab_data = lab.parse_lab_data(a.get("lab_data"))
         ok, msg = lab.check_lab_success(lab_data, expected, action)
 
@@ -553,15 +598,27 @@ def r1_lab_action(team, assignment_id):
                 (db.now_ms(), new_attempts, assignment_id))
             _log_lab_event(conn, session_row["id"], assignment_id, "flag_revealed")
             conn.commit()
+            try:
+                rstate.update_assignment(
+                    assignment_id, lab_status="LAB_COMPLETED",
+                    lab_completed_at=db.now_ms(), flag_revealed=1,
+                    lab_attempts=new_attempts, lab_submitted=1)
+            except Exception:
+                pass
             return jsonify({
                 "ok": True, "completed": True, "status": "correct",
-                "flag": _variant_flag(conn, assignment_id), "message": msg})
+                "flag": rstate.get_flag(assignment_id), "message": msg})
 
         conn.execute(
             "UPDATE team_challenge_assignments SET lab_attempts=?, "
             "lab_submitted=1 WHERE id=?",
             (new_attempts, assignment_id))
         conn.commit()
+        try:
+            rstate.update_assignment(
+                assignment_id, lab_attempts=new_attempts, lab_submitted=1)
+        except Exception:
+            pass
         # Wrong but not yet out of attempts -> blue "submitted/locked" state.
         # Out of attempts after this -> permanently locked.
         return jsonify({
@@ -596,6 +653,11 @@ def r1_lab_next(team, assignment_id):
             "SELECT * FROM team_challenge_assignments WHERE id=?",
             (assignment_id,)).fetchone()
         row = dict(row) if row else {}
+        if not row:
+            for c in (dict(session.get("r1_state") or {}).get("assignments") or []):
+                if c.get("id") == assignment_id:
+                    row = c
+                    break
         lab_status = row.get("lab_status", "NOT_STARTED")
         lab_attempts = int(row.get("lab_attempts") or 0)
         if lab_status == "LAB_COMPLETED":
@@ -607,26 +669,14 @@ def r1_lab_next(team, assignment_id):
             "UPDATE team_challenge_assignments SET lab_submitted=0 WHERE id=?",
             (assignment_id,))
         conn.commit()
+        try:
+            rstate.update_assignment(assignment_id, lab_submitted=0)
+        except Exception:
+            pass
         remaining = max(0, max_attempts() - lab_attempts)
         return jsonify({"ok": True, "remaining": remaining})
     finally:
         conn.close()
-
-
-def _variant_flag(conn, assignment_id):
-    """Fetch the variant flag for an assignment (server-side reveal only)."""
-    own = conn is not None
-    if not own:
-        conn = db.get_connection()
-    try:
-        row = conn.execute(
-            "SELECT v.flag FROM team_challenge_assignments a "
-            "JOIN challenge_variants v ON a.variant_id = v.id WHERE a.id=?",
-            (assignment_id,)).fetchone()
-        return row["flag"] if row else ""
-    finally:
-        if not own:
-            conn.close()
 
 
 def update_session_score(conn, session_id):
@@ -669,6 +719,8 @@ def r1_hint(team, assignment_id):
     conn = db.get_connection()
     try:
         # re-check already solved -> don't show hint
+        if a.get("status") == "COMPLETED":
+            return jsonify({"ok": False, "error": "Already solved"}), 400
         solved = conn.execute(
             "SELECT id FROM submissions WHERE assignment_id=? AND is_correct=1 "
             "LIMIT 1", (assignment_id,)).fetchone()
@@ -693,17 +745,15 @@ def r1_hint(team, assignment_id):
 @r1.route("/r1/complete/<int:session_id>")
 @login_required_team
 def r1_complete(team, session_id):
-    conn = db.get_connection()
-    try:
-        sess = conn.execute(
-            "SELECT * FROM round_sessions WHERE id=? AND team_id=?",
-            (session_id, team["id"])).fetchone()
-    finally:
-        conn.close()
-    if sess is None:
+    sess = rstate.get_session(team["id"])
+    if not sess or sess.get("id") != session_id:
         abort(404)
-    sess = dict(sess)
-    assignments = assign.get_assignments(session_id)
+    sess = _mark_expired(dict(sess))
+    try:
+        rstate.mirror_session(sess)
+    except Exception:
+        pass
+    assignments = rstate.get_assignments(session_id)
     return render_template("r1_complete.html", team=team, session_row=sess,
                            assignments=assignments)
 
@@ -717,14 +767,8 @@ def r1_timeup(team):
     only expires the session if its deadline has actually passed, so an early
     POST can never close the round early.
     """
-    sess = assign.get_session_by_team(team["id"])
+    sess = rstate.get_session(team["id"])
     if sess is None:
-        finished = _get_finished_session(team["id"])
-        if finished is not None:
-            return jsonify(
-                {"ok": True,
-                 "redirect": url_for("r1.r1_complete",
-                                     session_id=finished["id"])})
         return jsonify({"ok": False, "error": "No session."}), 400
     if sess["ends_at"] > db.now_ms():
         return jsonify({"ok": False, "error": "Session still active."})
@@ -737,6 +781,10 @@ def r1_timeup(team):
         conn.commit()
     finally:
         conn.close()
+    try:
+        rstate.update_session_status(sess["id"], "EXPIRED", db.now_ms())
+    except Exception:
+        pass
     return jsonify(
         {"ok": True,
          "redirect": url_for("r1.r1_complete", session_id=sess["id"])})
