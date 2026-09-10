@@ -372,20 +372,9 @@ def login():
     captain = request.form.get("captain", "").strip()
     if not (team_name and team_id and captain):
         return render_template("login.html", error="All fields are required.")
-    # Assign case deterministically-ish but random per team via a rotating index
+    import random
     case_list = list(CASES.keys())
-    with open(os.path.join(BASE_DIR, "data", "case_counter.txt"), "a+") as f:
-        pass
-    counter = 0
-    try:
-        with open(os.path.join(BASE_DIR, "data", "case_counter.txt"), "r") as f:
-            counter = int(f.read().strip() or "0")
-    except Exception:
-        counter = 0
-    selected_case = case_list[counter % len(case_list)]
-    counter += 1
-    with open(os.path.join(BASE_DIR, "data", "case_counter.txt"), "w") as f:
-        f.write(str(counter))
+    selected_case = random.choice(case_list)
     session["team"] = {
         "name": team_name,
         "team_id": team_id,
