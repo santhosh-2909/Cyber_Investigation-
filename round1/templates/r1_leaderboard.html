@@ -6,14 +6,37 @@
   <title>Round 1 Leaderboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
   <style>
     .r1-bg-image{position:fixed;inset:0;z-index:0;background:url('/static/img/r1-universe.jpg') 50% 22%/cover no-repeat;opacity:.18;pointer-events:none}
     .r1-bg-image::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,transparent,rgba(3,7,15,.6) 82%)}
     .r1-bg-image~.topnav,.r1-bg-image~.container-wide{position:relative;z-index:1}
   </style>
 </head>
-<body>
+<body class="hx-frame">
   <div class="r1-bg-image" aria-hidden="true"></div>
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-phosphor" aria-hidden="true"></div>
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">R1 LAB</span>
+    </div>
+    <div class="hx-sec-center hx-seg"><span class="hx-cursor">RANKING NODE</span></div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
+    </div>
+  </div>
+  <div class="cyber-scene" aria-hidden="true">
+    <div class="cs-glows"></div>
+    <div class="cs-monitor cs-monitor-l"></div>
+    <div class="cs-monitor cs-monitor-r"></div>
+    <div class="cs-hood"></div>
+    <div class="cs-binary"></div>
+    <div class="cs-overlay"></div>
+  </div>
   <nav class="topnav">
     <div class="topnav-inner">
       <a href="{{ url_for('r1.r1_landing') }}" class="topnav-brand">
