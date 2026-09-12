@@ -6,7 +6,11 @@
   <title>Round 1 Leaderboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/hacker-theme.css') }}">
+  <style>
+    .r1-bg-image{position:fixed;inset:0;z-index:0;background:url('/static/img/r1-universe.jpg') 50% 22%/cover no-repeat;opacity:.18;pointer-events:none}
+    .r1-bg-image::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,transparent,rgba(3,7,15,.6) 82%)}
+    .r1-bg-image~.topnav,.r1-bg-image~.container-wide{position:relative;z-index:1}
+  </style>
 </head>
 <body>
   <div class="r1-bg-image" aria-hidden="true"></div>
